@@ -38,6 +38,15 @@ int main()
     Context appContext(window);
 
 	Queue queue = appContext.device.getQueue();
+    RequiredLimits requiredLimits = Default;
+
+    // We use at most 1 bind group for now
+    requiredLimits.limits.maxBindGroups = 1;
+    // We use at most 1 uniform buffer per stage
+    requiredLimits.limits.maxUniformBuffersPerShaderStage = 1;
+    // Uniform structs have a size of maximum 16 float (more than what we need)
+    requiredLimits.limits.maxUniformBufferBindingSize = 16 * 4;
+    
 
     wgpuQueueOnSubmittedWorkDone(queue, 0, onQueueWorkDone, nullptr);
 
@@ -61,36 +70,43 @@ int main()
     * Custom Buffers
     */
 
+    
+    /*
+    * Uniform buffer
+    */
     BufferDescriptor bufferDesc;
     bufferDesc.label = "Some GPU-side data buffer";
-    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::CopySrc;
-    bufferDesc.size = 16;
+    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
+    bufferDesc.size = sizeof(float);
     bufferDesc.mappedAtCreation = false;
-    Buffer buffer1 = appContext.device.createBuffer(bufferDesc);
-    Buffer buffer2 = appContext.device.createBuffer(bufferDesc);
+    Buffer uniformBuffer = appContext.device.createBuffer(bufferDesc);
 
-    buffer1.destroy();
-    buffer2.destroy();
 
-    buffer1.release();
-    buffer2.release();
+    
 
     /*
     *   Pipeline (make a struct or omething else in the future)
     */
 
     const char* shaderSource = R"(
+    @group(0) @binding(0) var<uniform> uTime: f32;
     @vertex
     fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> @builtin(position) vec4f {
-        var p = vec2f(0.0, 0.0);
-        if (in_vertex_index == 0u) {
-            p = vec2f(-0.5, -0.5);
-        } else if (in_vertex_index == 1u) {
-            p = vec2f(0.5, -0.5);
-        } else {
-            p = vec2f(0.0, 0.5);
-        }
-        return vec4f(p, 0.0, 1.0);
+        let scale = (0.5f*sin(uTime)) + 0.5f;
+        let pos = array(
+            scale*vec2( 0.0,  0.5),
+            scale*vec2(-0.5, -0.5),
+            scale*vec2( 0.5, -0.5)
+        );
+
+        let rot_mat = mat3x3f(
+            cos(uTime), sin(uTime), 0.f,
+            -sin(uTime), cos(uTime), 0.f,
+            0.f, 0.f, 1.f
+        );
+
+        let transformed_vertex = rot_mat * vec3f(pos[in_vertex_index], 0.f);
+        return vec4f(transformed_vertex, 1.f);
     }
 
     @fragment
@@ -98,6 +114,39 @@ int main()
         return vec4f(0.0, 0.4, 1.0, 1.0);
     }
     )";
+
+
+    /*
+    * Uniform buffer
+    */
+    float currentTime = 10.f;
+    queue.writeBuffer(uniformBuffer, 0, &currentTime, sizeof(float));
+
+    /*
+    * Pipeline layout for ressources (uniforms bindings)
+    */
+
+    // Create binding layout (don't forget to = Default)
+    BindGroupLayoutEntry bindingLayout = Default;
+    // The binding index as used in the @binding attribute in the shader
+    bindingLayout.binding = 0;
+    // The stage that needs to access this resource
+    bindingLayout.visibility = ShaderStage::Vertex;
+    bindingLayout.buffer.type = BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(float);
+
+
+    // Create a bind group layout
+    BindGroupLayoutDescriptor bindGroupLayoutDesc{};
+    bindGroupLayoutDesc.entryCount = 1;
+    bindGroupLayoutDesc.entries = &bindingLayout;
+    BindGroupLayout bindGroupLayout = appContext.device.createBindGroupLayout(bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    PipelineLayoutDescriptor layoutDesc{};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout*)&bindGroupLayout;
+    PipelineLayout layout = appContext.device.createPipelineLayout(layoutDesc);
 
     ShaderModuleDescriptor shaderDesc;
     ShaderModuleWGSLDescriptor shaderCodeDesc;
@@ -178,15 +227,48 @@ int main()
     // Default value as well (irrelevant for count = 1 anyways)
     pipelineDesc.multisample.alphaToCoverageEnabled = false;
     
-    pipelineDesc.layout = nullptr;
+    pipelineDesc.layout = layout;
 
     RenderPipeline pipeline = appContext.device.createRenderPipeline(pipelineDesc);
     
+
+
+    /*
+    * Bind group
+    */
+
+    // Create a binding
+    BindGroupEntry binding{};
+    // [...] Setup binding
+    // The index of the binding (the entries in bindGroupDesc can be in any order)
+    binding.binding = 0;
+    // The buffer it is actually bound to
+    binding.buffer = uniformBuffer;
+    // We can specify an offset within the buffer, so that a single buffer can hold
+    // multiple uniform blocks.
+    binding.offset = 0;
+    // And we specify again the size of the buffer.
+    binding.size = sizeof(float);
+
+    // A bind group contains one or multiple bindings
+    BindGroupDescriptor bindGroupDesc{};
+    bindGroupDesc.layout = bindGroupLayout;
+    // There must be as many bindings as declared in the layout!
+    bindGroupDesc.entryCount = bindGroupLayoutDesc.entryCount;
+    bindGroupDesc.entries = &binding;
+    BindGroup bindGroup = appContext.device.createBindGroup(bindGroupDesc);
+
+
     while (!glfwWindowShouldClose(window)) 
     {
         // Check whether the user clicked on the close button (and any other
         // mouse/key event, which we don't use so far)
         glfwPollEvents();
+
+        // Update uniform buffer
+        currentTime = (float)glfwGetTime();
+        queue.writeBuffer(uniformBuffer, 0, &currentTime, sizeof(float));
+
 
         TextureView nextTexture = swapChain.getCurrentTextureView();
 		if (!nextTexture) {
@@ -215,11 +297,11 @@ int main()
         renderPassDesc.timestampWriteCount = 0;
         renderPassDesc.timestampWrites = nullptr;
 
-
-
 		RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
         // Select which render pipeline to use
         renderPass.setPipeline(pipeline);
+        renderPass.setBindGroup(0, bindGroup, 0, nullptr);
+
         // Draw 1 instance of a 3-vertices shape
         renderPass.draw(3, 1, 0, 0);
 		renderPass.end();
@@ -230,7 +312,6 @@ int main()
 		cmdBufferDescriptor.label = "Command buffer";
 		CommandBuffer command = encoder.finish(cmdBufferDescriptor);
 		queue.submit(command);
-
 		swapChain.present();
     }
 
@@ -240,6 +321,8 @@ int main()
     glfwDestroyWindow(window);
     glfwTerminate();
 
+    uniformBuffer.destroy();
+    uniformBuffer.release();
     // 5. We clean up the WebGPU instance
     // appContext.release();
     // instance.release();
