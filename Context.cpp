@@ -1,5 +1,3 @@
-#define WEBGPU_CPP_IMPLEMENTATION
-
 #include "Context.h"
 
 using namespace wgpu;
@@ -43,7 +41,7 @@ Context::Context(GLFWwindow *window)
 		std::cout << std::endl;
 	};
 	wgpuDeviceSetUncapturedErrorCallback(device, onDeviceError, nullptr /* pUserData */);
-    wgpuDeviceSetDeviceLostCallback(device, onDeviceLost, nullptr);
+    // wgpuDeviceSetDeviceLostCallback(device, onDeviceLost, nullptr);
 }
 
 SwapChain Context::getSwapChain(wgpu::SwapChainDescriptor swapChainDesc)

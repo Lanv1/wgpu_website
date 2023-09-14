@@ -1,10 +1,12 @@
 #pragma once
 
+#include <webgpu/webgpu.hpp>
+
+#include <glfw3webgpu.h>
+
 #include <cassert>
 #include <iostream>
-#include <webgpu/webgpu.hpp>
-#include <glfw3webgpu.h>
-// #include <GLFW/glfw3.h>
+
 
 struct Context
 {
