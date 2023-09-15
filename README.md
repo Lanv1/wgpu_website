@@ -4,6 +4,9 @@
 
 ```
 cd wegpu_website
-cmake . -B build
+emcmake cmake -B build
 cmake --build build
+python -m http.server -d build
 ```
+
+Go to **http://localhost:8000/App.html**
