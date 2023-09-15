@@ -2,6 +2,8 @@
     "files.associations": {
         "makefile": "bat",
         "glfw3webgpu.h": "c",
-        "glfw3native.h": "c"
+        "glfw3native.h": "c",
+        "ostream": "cpp",
+        "fstream": "cpp"
     }
 }

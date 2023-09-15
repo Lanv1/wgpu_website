@@ -6,7 +6,7 @@
 
 #include <cassert>
 #include <iostream>
-
+#include <filesystem>
 
 struct Context
 {
@@ -14,9 +14,17 @@ struct Context
     wgpu::Adapter adapter = nullptr;
     wgpu::Device device = nullptr;
     wgpu::Surface surface = nullptr;
+    wgpu::Queue queue = nullptr;
+    wgpu::SwapChain swapChain = nullptr;
+    wgpu::RenderPipeline pipeline = nullptr;
+    wgpu::BindGroup bindGroup = nullptr;
+    wgpu::Buffer uniformBuffer = nullptr;
 
     Context(GLFWwindow *window);
 
-    wgpu::SwapChain getSwapChain(wgpu::SwapChainDescriptor swapChainDesc);
     void release();
+
+private:
+    wgpu::ShaderModule loadShaderModule(const std::filesystem::path& path, wgpu::Device device);
+
 };
