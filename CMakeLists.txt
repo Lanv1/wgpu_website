@@ -8,6 +8,7 @@ project(
 # We add an option to enable different settings when developping the app than
 # when distributing it.
 option(DEV_MODE "Set up development helper settings" ON)
+set(SHELL_FILE shell_minimal.html)
 
 add_subdirectory(webgpu)
 add_subdirectory(glfw3webgpu)
@@ -47,29 +48,23 @@ set_target_properties(App PROPERTIES
 )
 target_copy_webgpu_binaries(App)
 
-if (MSVC)
-	# Ignore a warning that GLM requires to bypass
-	# Disable warning C4201: nonstandard extension used: nameless struct/union
-	target_compile_options(App PUBLIC /wd4201)
-	# Disable warning C4305: truncation from 'int' to 'bool' in 'if' condition
-	target_compile_options(App PUBLIC /wd4305)
 
-	# Ignore a warning that stb_image requires to bypass
-	# Disable warning C4244: conversion from 'int' to 'short', possible loss of data
-	target_compile_options(App PUBLIC /wd4244)
-endif (MSVC)
+# Add Emscripten-specific link options
+target_link_options(App PRIVATE
+	-sUSE_GLFW=3 # Use Emscripten-provided GLFW
+	-sUSE_WEBGPU # Handle WebGPU symbols
+	-sASYNCIFY # Required by WebGPU-C++
+	--preload-file "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+	-sALLOW_MEMORY_GROWTH
+	--shell-file "${CMAKE_CURRENT_SOURCE_DIR}/${SHELL_FILE}"
+)
 
-# At the end of the CMakeLists.txt
-if (EMSCRIPTEN)
-	# Add Emscripten-specific link options
-	target_link_options(App PRIVATE
-		-sUSE_GLFW=3 # Use Emscripten-provided GLFW
-		-sUSE_WEBGPU # Handle WebGPU symbols
-		-sASYNCIFY # Required by WebGPU-C++
-		--preload-file "${CMAKE_CURRENT_SOURCE_DIR}/resources"
-		-sALLOW_MEMORY_GROWTH
-	)
+# Generate a full web page rather than a simple WebAssembly module
+set_target_properties(App PROPERTIES SUFFIX ".html")
 
-	# Generate a full web page rather than a simple WebAssembly module
-	set_target_properties(App PROPERTIES SUFFIX ".html")
-endif()
+
+set_property(
+    TARGET App
+    PROPERTY LINK_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/${SHELL_FILE}"
+)
