@@ -12,6 +12,7 @@ set(SHELL_FILE shell_minimal.html)
 
 add_subdirectory(webgpu)
 add_subdirectory(glfw3webgpu)
+add_subdirectory(dependencies)
 
 add_executable(App
 	main.cpp
@@ -40,7 +41,7 @@ endif()
 
 target_include_directories(App PRIVATE .)
 
-target_link_libraries(App PRIVATE glfw webgpu glfw3webgpu)
+target_link_libraries(App PRIVATE glfw webgpu glfw3webgpu glm)
 
 set_target_properties(App PROPERTIES
 	CXX_STANDARD 17
@@ -61,7 +62,6 @@ target_link_options(App PRIVATE
 
 # Generate a full web page rather than a simple WebAssembly module
 set_target_properties(App PROPERTIES SUFFIX ".html")
-
 
 set_property(
     TARGET App

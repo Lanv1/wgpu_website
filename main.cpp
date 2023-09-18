@@ -10,7 +10,7 @@ GLFWwindow* init(int32_t width, int32_t height)
 {
     if (!glfwInit()) 
     {
-        std::cerr << "Could not initialize GLFW!" << std::endl;
+        std::cerr << "Could not initialize GLFW." << std::endl;
         glfwTerminate();
         return nullptr;
     }
@@ -36,6 +36,7 @@ int main()
 
     Application app;
     app.init(window);
+
 
     emscripten_set_main_loop_arg
     (

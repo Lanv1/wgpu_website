@@ -2,6 +2,6 @@ include(FetchContent)
 
 # //DEPENDENCIES CMAKEs
 # include(glfw.cmake)
-# include(glm.cmake)
+include(glm.cmake)
 
-# FetchContent_MakeAvailable(glfw)
+FetchContent_MakeAvailable(glm)

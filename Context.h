@@ -7,6 +7,36 @@
 #include <cassert>
 #include <iostream>
 #include <filesystem>
+#include <vector>
+
+#include <glm/vec3.hpp>
+#include <glm/mat4x4.hpp> 
+#include <glm/matrix.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/scalar_constants.hpp>
+
+
+struct Camera
+{
+    glm::mat4 projection;
+    glm::mat4 view;
+
+    glm::vec3 position;
+
+    Camera();
+
+    Camera
+    (
+        const float winWidth,
+        const float winHeight,
+        const glm::vec3 translation = glm::vec3(0, 0, 2.f),
+        const float fov = 60.f
+    );
+
+    void updateOrbit(const float speed);
+};
+
 
 struct Context
 {
@@ -18,7 +48,13 @@ struct Context
     wgpu::SwapChain swapChain = nullptr;
     wgpu::RenderPipeline pipeline = nullptr;
     wgpu::BindGroup bindGroup = nullptr;
-    wgpu::Buffer uniformBuffer = nullptr;
+    wgpu::Buffer uniformBufferCam = nullptr;
+    wgpu::Buffer uniformBufferMisc = nullptr;
+    
+    wgpu::TextureView depthTextureView = nullptr;
+    wgpu::Texture depthTexture = nullptr;
+    
+    Camera camera;
 
     Context(GLFWwindow *window);
 

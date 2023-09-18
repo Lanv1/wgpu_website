@@ -3,6 +3,60 @@
 
 using namespace wgpu;
 
+Camera::Camera(){}
+Camera::Camera
+(
+    const float winWidth,
+    const float winHeight,
+    const glm::vec3 translation,
+    const float fov
+)
+{
+    position = translation;
+    const float aspectRatio = winWidth / winHeight;
+    std::cout<<"ASPECT RATIO "<<aspectRatio<<std::endl;
+    // view = glm::translate(glm::mat4(1.f), translation);
+    view = glm::lookAt(position, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+    projection = glm::perspective(
+        glm::radians(fov),
+        aspectRatio,
+        0.1f,
+        100.0f
+    );
+
+    std::cout<<"VIEW:"<<std::endl;
+    for(int32_t i = 0; i < 4; i ++)
+    {
+        for(int32_t j = 0; j < 4; j ++)
+        {
+            std::cout<<view[i][j]<<" ";
+            
+        }
+
+        std::cout<<std::endl;
+    }
+    std::cout<<std::endl;
+    std::cout<<"PROJ:"<<std::endl;
+    for(int32_t i = 0; i < 4; i ++)
+    {
+        for(int32_t j = 0; j < 4; j ++)
+        {
+            std::cout<<projection[i][j]<<" ";
+            
+        }
+
+        std::cout<<std::endl;
+    }
+    std::cout<<std::endl;
+}
+
+void Camera::updateOrbit(const float speed)
+{
+    // glm::mat4 tmpView = glm::translate(view, -position);
+    view = glm::rotate(view, glm::radians(speed / 10.f), glm::vec3(0.f, 1.f, 0.f));
+    // view = glm::translate(tmpView, position);
+}
+
 ShaderModule Context::loadShaderModule(const std::filesystem::path& path, wgpu::Device device)
 {
 	std::cout<<"PATH: "<<path.c_str()<<std::endl;
@@ -27,19 +81,22 @@ ShaderModule Context::loadShaderModule(const std::filesystem::path& path, wgpu::
 	return device.createShaderModule(shaderDesc);
 }
 
-
 Context::Context(GLFWwindow *window)
 {
-	int32_t window_width, window_height;
+	int32_t window_width = 1080;
+    int32_t window_height = 920;
 
-	glfwGetWindowSize(window, &window_width, &window_height);
+	// glfwGetWindowSize(window, &window_width, &window_height);
 	instance = createInstance(InstanceDescriptor{});
 	if (!instance) {
 		std::cerr << "Could not initialize WebGPU!" << std::endl;
 	}
+    
+    std::cout<<"width height "<<window_width<< ", "<<window_height<<std::endl;
+    camera = Camera((float)window_width, (float)window_height, glm::vec3(0.f, 1.f, 5.f));
 
 	surface = glfwGetWGPUSurface(instance, window);
-
+    
 	RequestAdapterOptions adapterOpts{};
 	adapterOpts.compatibleSurface = surface;
 	
@@ -90,17 +147,17 @@ Context::Context(GLFWwindow *window)
     // We use at most 1 bind group for now
     requiredLimits.limits.maxBindGroups = 1;
     // We use at most 1 uniform buffer per stage
-    requiredLimits.limits.maxUniformBuffersPerShaderStage = 1;
+    requiredLimits.limits.maxUniformBuffersPerShaderStage = 2;
     // Uniform structs have a size of maximum 16 float (more than what we need)
-    requiredLimits.limits.maxUniformBufferBindingSize = 16 * sizeof(float);
+    requiredLimits.limits.maxUniformBufferBindingSize = 3 * 16 * sizeof(float);
 
 	requiredLimits.limits.minStorageBufferOffsetAlignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
 	requiredLimits.limits.minUniformBufferOffsetAlignment = supportedLimits.limits.minUniformBufferOffsetAlignment;
 	requiredLimits.limits.maxInterStageShaderComponents = 8;
 
 	// Allow textures up to 2K
-	requiredLimits.limits.maxTextureDimension1D = 2048;
-	requiredLimits.limits.maxTextureDimension2D = 2048;
+	requiredLimits.limits.maxTextureDimension1D = 1920;
+	requiredLimits.limits.maxTextureDimension2D = 1080;
 	requiredLimits.limits.maxTextureArrayLayers = 1;
 	requiredLimits.limits.maxSampledTexturesPerShaderStage = 1;
 	requiredLimits.limits.maxSamplersPerShaderStage = 1;
@@ -124,72 +181,69 @@ Context::Context(GLFWwindow *window)
 
 
 	/*
-    * Uniform buffer
+    * Uniform buffers
     */
+   {
     BufferDescriptor bufferDesc;
-    bufferDesc.label = "Some GPU-side data buffer";
+    bufferDesc.label = "View, Projection buffers";
+    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
+    bufferDesc.size = 2 * sizeof(glm::mat4);
+    bufferDesc.mappedAtCreation = false;
+    uniformBufferCam = device.createBuffer(bufferDesc);
+   }
+
+   {
+    BufferDescriptor bufferDesc;
+    bufferDesc.label = "Single float buffer";
     bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
     bufferDesc.size = sizeof(float);
     bufferDesc.mappedAtCreation = false;
-    uniformBuffer = device.createBuffer(bufferDesc);
+    uniformBufferMisc = device.createBuffer(bufferDesc);
+   }
 
 
+    
     /*
     *   Pipeline (make a struct or something else in the future)
     */
-
-    const char* shaderSource = R"(
-    @group(0) @binding(0) var<uniform> uTime: f32;
-    @vertex
-    fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> @builtin(position) vec4f {
-        let scale = (0.5f*sin(uTime)) + 0.5f;
-        let pos = array(
-            scale*vec2( 0.0,  0.5),
-            scale*vec2(-0.5, -0.5),
-            scale*vec2( 0.5, -0.5)
-        );
-
-        let rot_mat = mat3x3f(
-            cos(uTime), sin(uTime), 0.f,
-            -sin(uTime), cos(uTime), 0.f,
-            0.f, 0.f, 1.f
-        );
-
-        let transformed_vertex = rot_mat * vec3f(pos[in_vertex_index], 0.f);
-        return vec4f(transformed_vertex, 1.f);
-    }
-
-    @fragment
-    fn fs_main() -> @location(0) vec4f {
-        return vec4f(0.0, 0.4, 1.0, 1.0);
-    }
-    )";
-
 
     /*
     * Uniform buffer
     */
     float currentTime = 10.f;
-    queue.writeBuffer(uniformBuffer, 0, &currentTime, sizeof(float));
+    queue.writeBuffer(uniformBufferMisc, 0, &currentTime, sizeof(float));
+    queue.writeBuffer(uniformBufferCam, 0, &camera.view, sizeof(glm::mat4));
+    queue.writeBuffer(uniformBufferCam, sizeof(glm::mat4), &camera.projection, sizeof(glm::mat4));
 
     /*
     * Pipeline layout for ressources (uniforms bindings)
     */
 
     // Create binding layout (don't forget to = Default)
-    BindGroupLayoutEntry bindingLayout = Default;
+    BindGroupLayoutEntry bindingLayout[2] = {};
+    bindingLayout[0] = Default;
     // The binding index as used in the @binding attribute in the shader
-    bindingLayout.binding = 0;
+    bindingLayout[0].binding = 0;
     // The stage that needs to access this resource
-    bindingLayout.visibility = ShaderStage::Vertex;
-    bindingLayout.buffer.type = BufferBindingType::Uniform;
-    bindingLayout.buffer.minBindingSize = sizeof(float);
+    bindingLayout[0].visibility = ShaderStage::Vertex;
+    bindingLayout[0].buffer.type = BufferBindingType::Uniform;
+    bindingLayout[0].buffer.minBindingSize = sizeof(float);
+
+    // The binding index as used in the @binding attribute in the shader
+    bindingLayout[1] = Default;
+    bindingLayout[1].binding = 1;
+    // The stage that needs to access this resource
+    bindingLayout[1].visibility = ShaderStage::Vertex;
+    bindingLayout[1].buffer.type = BufferBindingType::Uniform;
+    bindingLayout[1].buffer.minBindingSize = 2*sizeof(glm::mat4);
+
+    
 
 
     // Create a bind group layout
     BindGroupLayoutDescriptor bindGroupLayoutDesc{};
-    bindGroupLayoutDesc.entryCount = 1;
-    bindGroupLayoutDesc.entries = &bindingLayout;
+    bindGroupLayoutDesc.entryCount = 2;
+    bindGroupLayoutDesc.entries = bindingLayout;
     BindGroupLayout bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDesc);
 
     // Create the pipeline layout
@@ -198,19 +252,7 @@ Context::Context(GLFWwindow *window)
     layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout*)&bindGroupLayout;
     PipelineLayout layout = device.createPipelineLayout(layoutDesc);
 
-    // ShaderModuleDescriptor shaderDesc;
-    // ShaderModuleWGSLDescriptor shaderCodeDesc;
-
-    // // Set the chained struct's header
-    // shaderCodeDesc.chain.next = nullptr;
-    // shaderCodeDesc.chain.sType = SType::ShaderModuleWGSLDescriptor;
-    // shaderCodeDesc.code = shaderSource;
-    
-    // // Connect the chain
-    // shaderDesc.nextInChain = &shaderCodeDesc.chain;
-
     // // [...] Describe shader module
-    // // ShaderModule shaderModule = device.createShaderModule(shaderDesc);
     ShaderModule shaderModule = loadShaderModule(RESOURCE_DIR "/shader.wgsl", device);
 
 	
@@ -240,8 +282,45 @@ Context::Context(GLFWwindow *window)
     // cull (i.e. "hide") the faces pointing away from us (which is often
     // used for optimization).
     pipelineDesc.primitive.cullMode = CullMode::None;
-    pipelineDesc.depthStencil = nullptr;
 
+
+    // Setup depth state
+    DepthStencilState depthStencilState = Default;
+    depthStencilState.depthCompare = CompareFunction::Less;
+    depthStencilState.depthWriteEnabled = true;
+
+    // Deactivate the stencil alltogether
+    depthStencilState.stencilReadMask = 0;
+    depthStencilState.stencilWriteMask = 0;
+
+    // Store the format in a variable as later parts of the code depend on it
+    TextureFormat depthTextureFormat = TextureFormat::Depth24Plus;
+    depthStencilState.format = depthTextureFormat;
+
+    // Create the depth texture
+    TextureDescriptor depthTextureDesc;
+    depthTextureDesc.dimension = TextureDimension::_2D;
+    depthTextureDesc.format = depthTextureFormat;
+    depthTextureDesc.mipLevelCount = 1;
+    depthTextureDesc.sampleCount = 1;
+    depthTextureDesc.size = {(uint32_t)window_width, (uint32_t)window_height, 1};
+    depthTextureDesc.usage = TextureUsage::RenderAttachment;
+    depthTextureDesc.viewFormatCount = 1;
+    depthTextureDesc.viewFormats = (WGPUTextureFormat*)&depthTextureFormat;
+    depthTexture = device.createTexture(depthTextureDesc);
+
+    // Create the view of the depth texture manipulated by the rasterizer
+    TextureViewDescriptor depthTextureViewDesc;
+    depthTextureViewDesc.aspect = TextureAspect::DepthOnly;
+    depthTextureViewDesc.baseArrayLayer = 0;
+    depthTextureViewDesc.arrayLayerCount = 1;
+    depthTextureViewDesc.baseMipLevel = 0;
+    depthTextureViewDesc.mipLevelCount = 1;
+    depthTextureViewDesc.dimension = TextureViewDimension::_2D;
+    depthTextureViewDesc.format = depthTextureFormat;
+    depthTextureView = depthTexture.createView(depthTextureViewDesc);
+
+    pipelineDesc.depthStencil = &depthStencilState;
     
     FragmentState fragmentState;
     fragmentState.module = shaderModule;
@@ -288,24 +367,35 @@ Context::Context(GLFWwindow *window)
     */
 
     // Create a binding
-    BindGroupEntry binding{};
+    BindGroupEntry binding[2] = {};
     // [...] Setup binding
     // The index of the binding (the entries in bindGroupDesc can be in any order)
-    binding.binding = 0;
+    binding[0].binding = 0;
     // The buffer it is actually bound to
-    binding.buffer = uniformBuffer;
+    binding[0].buffer = uniformBufferMisc;
     // We can specify an offset within the buffer, so that a single buffer can hold
     // multiple uniform blocks.
-    binding.offset = 0;
+    binding[0].offset = 0;
     // And we specify again the size of the buffer.
-    binding.size = sizeof(float);
+    binding[0].size = sizeof(float);
+
+    // [...] Setup binding
+    // The index of the binding (the entries in bindGroupDesc can be in any order)
+    binding[1].binding = 1;
+    // The buffer it is actually bound to
+    binding[1].buffer = uniformBufferCam;
+    // We can specify an offset within the buffer, so that a single buffer can hold
+    // multiple uniform blocks.
+    binding[1].offset = 0;
+    // And we specify again the size of the buffer.
+    binding[1].size = 2*sizeof(glm::mat4);
 
     // A bind group contains one or multiple bindings
     BindGroupDescriptor bindGroupDesc{};
     bindGroupDesc.layout = bindGroupLayout;
     // There must be as many bindings as declared in the layout!
     bindGroupDesc.entryCount = bindGroupLayoutDesc.entryCount;
-    bindGroupDesc.entries = &binding;
+    bindGroupDesc.entries = binding;
     bindGroup = device.createBindGroup(bindGroupDesc);
 }
 
@@ -319,6 +409,14 @@ void Context::release()
     pipeline.release();
     bindGroup.release();
 
-	uniformBuffer.destroy();
-    uniformBuffer.release();
+	uniformBufferMisc.destroy();
+    uniformBufferMisc.release();
+
+	uniformBufferCam.destroy();
+    uniformBufferCam.release();
+
+    // Destroy the depth texture and its view
+    depthTextureView.release();
+    depthTexture.destroy();
+    depthTexture.release();
 }
