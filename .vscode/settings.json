@@ -24,6 +24,11 @@
         "xhash": "cpp",
         "xstring": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "chrono": "cpp",
+        "filesystem": "cpp",
+        "xlocinfo": "cpp",
+        "future": "cpp",
+        "system_error": "cpp"
     }
 }

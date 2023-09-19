@@ -16,7 +16,7 @@ GLFWwindow* init(int32_t width, int32_t height)
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     // Create the window
     return glfwCreateWindow(width, height, "WebGPU", NULL, NULL);
@@ -24,8 +24,8 @@ GLFWwindow* init(int32_t width, int32_t height)
 
 int main()
 {
-    constexpr int32_t window_width = 640;
-    constexpr int32_t window_height = 480;
+    constexpr int32_t window_width = 1920;
+    constexpr int32_t window_height = 1080;
 
     GLFWwindow *window = init(window_width, window_height);
 

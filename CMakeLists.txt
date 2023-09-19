@@ -8,7 +8,7 @@ project(
 # We add an option to enable different settings when developping the app than
 # when distributing it.
 option(DEV_MODE "Set up development helper settings" ON)
-set(SHELL_FILE shell_minimal.html)
+set(SHELL_FILE shell.html)
 
 add_subdirectory(webgpu)
 add_subdirectory(glfw3webgpu)
@@ -20,6 +20,10 @@ add_executable(App
 	Context.cpp
 	Application.h
 	Application.cpp
+	GpuProcess.h
+	GpuProcess.cpp
+	PipelineRenderTriangle.h
+	PipelineRenderTriangle.cpp
 	implementations.cpp
 )
 

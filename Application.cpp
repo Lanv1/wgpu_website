@@ -5,17 +5,27 @@ using namespace wgpu;
 void Application::init(GLFWwindow *window)
 {
     appContext = Context(window);
+
+    /*
+    * Add different GPU processes
+    */
+    renderTriangleProcess = createPipelineRenderTriangle(appContext.device, appContext.queue);
+
+    // Set the projection matrix uniform buffer only once because we will not update it.
+    appContext.queue.writeBuffer
+    (
+        renderTriangleProcess.uniformBuffers[1],
+        sizeof(glm::mat4),
+        &appContext.camera.projection,
+        sizeof(glm::mat4)
+    );
+
 }
 
 void Application::display()
 {
     appContext.camera.updateOrbit(1.f);
-    // Update uniform buffer
-    float currentTime = (float)glfwGetTime();
-    appContext.queue.writeBuffer(appContext.uniformBufferMisc, 0, &currentTime, sizeof(float));
-    appContext.queue.writeBuffer(appContext.uniformBufferCam, 0, &appContext.camera.view, sizeof(glm::mat4));
 
-    
     TextureView nextTexture = appContext.swapChain.getCurrentTextureView();
     if (!nextTexture) {
         std::cerr << "Cannot acquire next swap chain texture" << std::endl;
@@ -28,13 +38,14 @@ void Application::display()
 
     RenderPassDescriptor renderPassDesc{};
 
-    WGPURenderPassColorAttachment renderPassColorAttachment = {};
+    RenderPassColorAttachment renderPassColorAttachment = {};
     renderPassColorAttachment.view = nextTexture;
     renderPassColorAttachment.resolveTarget = nullptr;
 
     renderPassColorAttachment.loadOp = LoadOp::Clear;
     renderPassColorAttachment.storeOp = StoreOp::Store;
-    renderPassColorAttachment.clearValue = WGPUColor{ 0.9, 0.1, 0.2, 1.0 };
+    
+    renderPassColorAttachment.clearValue = Color{ 0.7, 0.8, 0.9, 1.0 };
     
     renderPassDesc.colorAttachmentCount = 1;
     renderPassDesc.colorAttachments = &renderPassColorAttachment;
@@ -62,24 +73,35 @@ void Application::display()
     renderPassDesc.timestampWriteCount = 0;
     renderPassDesc.timestampWrites = nullptr;
 
-    RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
-    // Select which render pipeline to use
-    renderPass.setPipeline(appContext.pipeline);
-    renderPass.setBindGroup(0, appContext.bindGroup, 0, nullptr);
+    /*
+    * Can have multiple render passes here
+    */
+    {
+        // Update Uniforms
+        float currentTime = (float)glfwGetTime();
+        appContext.queue.writeBuffer(renderTriangleProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
+        appContext.queue.writeBuffer(renderTriangleProcess.uniformBuffers[1], 0, &appContext.camera.view, sizeof(glm::mat4));
 
-    // Draw 1 instance of a 3-vertices shape
-    renderPass.draw(3, 1, 0, 0);
-    renderPass.end();
-    
-    nextTexture.release();
+        RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
+        // Select which render pipeline to use with its bindGroup
+        renderPass.setPipeline(renderTriangleProcess.pipeline);
+        renderPass.setBindGroup(0, renderTriangleProcess.bindGroup, 0, nullptr);
 
-    CommandBufferDescriptor cmdBufferDescriptor{};
-    cmdBufferDescriptor.label = "Command buffer";
-    CommandBuffer command = encoder.finish(cmdBufferDescriptor);
-    appContext.queue.submit(command);
+        // Draw 1 instance of a 3-vertices shape
+        renderPass.draw(3, 1, 0, 0);
+        renderPass.end();
+        
+        nextTexture.release();
+
+        CommandBufferDescriptor cmdBufferDescriptor{};
+        cmdBufferDescriptor.label = "Command buffer";
+        CommandBuffer command = encoder.finish(cmdBufferDescriptor);
+        appContext.queue.submit(command);
+    }
 }
 
 void Application::release()
 {
     appContext.release();
+    renderTriangleProcess.release();
 }

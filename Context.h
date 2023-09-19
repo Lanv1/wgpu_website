@@ -1,12 +1,10 @@
 #pragma once
 
 #include <webgpu/webgpu.hpp>
-
 #include <glfw3webgpu.h>
 
 #include <cassert>
 #include <iostream>
-#include <filesystem>
 #include <vector>
 
 #include <glm/vec3.hpp>
@@ -46,11 +44,6 @@ struct Context
     wgpu::Surface surface = nullptr;
     wgpu::Queue queue = nullptr;
     wgpu::SwapChain swapChain = nullptr;
-    wgpu::RenderPipeline pipeline = nullptr;
-    wgpu::BindGroup bindGroup = nullptr;
-    wgpu::Buffer uniformBufferCam = nullptr;
-    wgpu::Buffer uniformBufferMisc = nullptr;
-    
     wgpu::TextureView depthTextureView = nullptr;
     wgpu::Texture depthTexture = nullptr;
     
@@ -59,8 +52,4 @@ struct Context
     Context(GLFWwindow *window);
 
     void release();
-
-private:
-    wgpu::ShaderModule loadShaderModule(const std::filesystem::path& path, wgpu::Device device);
-
 };
