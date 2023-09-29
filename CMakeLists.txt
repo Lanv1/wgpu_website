@@ -24,6 +24,8 @@ add_executable(App
 	GpuProcess.cpp
 	PipelineRenderTriangle.h
 	PipelineRenderTriangle.cpp
+	PipelineRenderSdf.h
+	PipelineRenderSdf.cpp
 	implementations.cpp
 )
 
@@ -41,6 +43,7 @@ else()
 		RESOURCE_DIR="./resources"
 	)
 endif()
+
 
 
 target_include_directories(App PRIVATE .)
@@ -64,11 +67,13 @@ target_link_options(App PRIVATE
 	--shell-file "${CMAKE_CURRENT_SOURCE_DIR}/${SHELL_FILE}"
 )
 
-# Generate a full web page rather than a simple WebAssembly module
-set_target_properties(App PROPERTIES SUFFIX ".html")
-
+# Re-link app whenever shell or shaders are modified.
+file(GLOB SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
 set_property(
     TARGET App
     PROPERTY LINK_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/${SHELL_FILE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/${SHELL_FILE}" "${SHADERS}"
 )
+
+# Generate a full web page rather than a simple WebAssembly module
+set_target_properties(App PROPERTIES SUFFIX ".html")

@@ -9,12 +9,12 @@ void Application::init(GLFWwindow *window)
     /*
     * Add different GPU processes
     */
-    renderTriangleProcess = createPipelineRenderTriangle(appContext.device, appContext.queue);
+    renderSdfProcess = createPipelineRenderSdf(appContext.device, appContext.queue);
 
     // Set the projection matrix uniform buffer only once because we will not update it.
     appContext.queue.writeBuffer
     (
-        renderTriangleProcess.uniformBuffers[1],
+        renderSdfProcess.uniformBuffers[1],
         sizeof(glm::mat4),
         &appContext.camera.projection,
         sizeof(glm::mat4)
@@ -24,7 +24,6 @@ void Application::init(GLFWwindow *window)
 
 void Application::display()
 {
-    appContext.camera.updateOrbit(1.f);
 
     TextureView nextTexture = appContext.swapChain.getCurrentTextureView();
     if (!nextTexture) {
@@ -79,16 +78,19 @@ void Application::display()
     {
         // Update Uniforms
         float currentTime = (float)glfwGetTime();
-        appContext.queue.writeBuffer(renderTriangleProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
-        appContext.queue.writeBuffer(renderTriangleProcess.uniformBuffers[1], 0, &appContext.camera.view, sizeof(glm::mat4));
+        appContext.camera.updateOrbit(1.f);
+
+        appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
+        appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view, sizeof(glm::mat4));
+        appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &appContext.camera.position, sizeof(glm::vec4));
 
         RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
         // Select which render pipeline to use with its bindGroup
-        renderPass.setPipeline(renderTriangleProcess.pipeline);
-        renderPass.setBindGroup(0, renderTriangleProcess.bindGroup, 0, nullptr);
+        renderPass.setPipeline(renderSdfProcess.pipeline);
+        renderPass.setBindGroup(0, renderSdfProcess.bindGroup, 0, nullptr);
 
         // Draw 1 instance of a 3-vertices shape
-        renderPass.draw(3, 1, 0, 0);
+        renderPass.draw(6, 1, 0, 0);
         renderPass.end();
         
         nextTexture.release();
@@ -103,5 +105,5 @@ void Application::display()
 void Application::release()
 {
     appContext.release();
-    renderTriangleProcess.release();
+    renderSdfProcess.release();
 }

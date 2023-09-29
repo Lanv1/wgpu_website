@@ -12,10 +12,12 @@ Camera::Camera
 )
 {
     position = translation;
+    std::cout<<"TRANSLSATION"<<std::endl;
     const float aspectRatio = winWidth / winHeight;
     std::cout<<"ASPECT RATIO "<<aspectRatio<<std::endl;
     // view = glm::translate(glm::mat4(1.f), translation);
     view = glm::lookAt(position, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+
     projection = glm::perspective(
         glm::radians(fov),
         aspectRatio,
@@ -51,7 +53,9 @@ Camera::Camera
 
 void Camera::updateOrbit(const float speed)
 {
-    view = glm::rotate(view, glm::radians(speed / 10.f), glm::vec3(0.f, 1.f, 0.f));
+    const glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(speed / 10.f), glm::vec3(0.f, 1.f, 0.f));
+    position = rotation * glm::vec4(position, 0.f);
+    view = glm::lookAt(position, {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f});
 }
 
 Context::Context(GLFWwindow *window)
@@ -66,6 +70,7 @@ Context::Context(GLFWwindow *window)
 	}
     
     std::cout<<"width height "<<window_width<< ", "<<window_height<<std::endl;
+
     camera = Camera((float)window_width, (float)window_height, glm::vec3(0.f, 3.f, 3.f));
 
 	surface = glfwGetWGPUSurface(instance, window);

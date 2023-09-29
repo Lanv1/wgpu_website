@@ -11,6 +11,8 @@
 #include <filesystem>
 #include <fstream>
 
+#pragma once
+
 struct GpuProcess
 {
     wgpu::RenderPipeline pipeline = nullptr;

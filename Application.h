@@ -2,13 +2,14 @@
 
 #include "Context.h"
 #include "PipelineRenderTriangle.h"
+#include "PipelineRenderSdf.h"
 
 struct Application
 {
 
 private:
     Context appContext = nullptr;
-    GpuProcess renderTriangleProcess;
+    GpuProcess renderSdfProcess;
 public:
     void init(GLFWwindow *window);
 
