@@ -34,7 +34,7 @@ int main()
         return 1;
     }
 
-    Application app;
+    Application app = {};
     app.init(window);
 
 

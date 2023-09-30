@@ -12,8 +12,8 @@ Camera::Camera
 )
 {
     position = translation;
-    std::cout<<"TRANSLSATION"<<std::endl;
     const float aspectRatio = winWidth / winHeight;
+    
     std::cout<<"ASPECT RATIO "<<aspectRatio<<std::endl;
     // view = glm::translate(glm::mat4(1.f), translation);
     view = glm::lookAt(position, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
@@ -60,8 +60,8 @@ void Camera::updateOrbit(const float speed)
 
 Context::Context(GLFWwindow *window)
 {
-	int32_t window_width = 1080;
-    int32_t window_height = 920;
+	int32_t window_width = 1920;
+    int32_t window_height = 1080;
 
 	// glfwGetWindowSize(window, &window_width, &window_height);
 	instance = createInstance(InstanceDescriptor{});
@@ -183,6 +183,8 @@ Context::Context(GLFWwindow *window)
     depthTextureView = depthTexture.createView(depthTextureViewDesc);
 
 }
+
+Context::Context(){}
 
 void Context::release()
 {

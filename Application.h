@@ -8,7 +8,7 @@ struct Application
 {
 
 private:
-    Context appContext = nullptr;
+    Context appContext = {};
     GpuProcess renderSdfProcess;
 public:
     void init(GLFWwindow *window);

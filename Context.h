@@ -50,6 +50,7 @@ struct Context
     Camera camera;
 
     Context(GLFWwindow *window);
+    Context();
 
     void release();
 };
