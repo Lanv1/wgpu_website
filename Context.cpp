@@ -71,7 +71,7 @@ Context::Context(GLFWwindow *window)
     
     std::cout<<"width height "<<window_width<< ", "<<window_height<<std::endl;
 
-    camera = Camera((float)window_width, (float)window_height, glm::vec3(0.f, 3.f, 3.f));
+    camera = Camera((float)window_width, (float)window_height, glm::vec3(0.f, 0.f, 3.f));
 
 	surface = glfwGetWGPUSurface(instance, window);
     
@@ -134,8 +134,8 @@ Context::Context(GLFWwindow *window)
 	requiredLimits.limits.maxInterStageShaderComponents = 8;
 
 	// Allow textures up to 2K
-	requiredLimits.limits.maxTextureDimension1D = 1920;
-	requiredLimits.limits.maxTextureDimension2D = 1080;
+	requiredLimits.limits.maxTextureDimension1D = window_width;
+	requiredLimits.limits.maxTextureDimension2D = window_height;
 	requiredLimits.limits.maxTextureArrayLayers = 1;
 	requiredLimits.limits.maxSampledTexturesPerShaderStage = 1;
 	requiredLimits.limits.maxSamplersPerShaderStage = 1;

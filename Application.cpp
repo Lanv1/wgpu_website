@@ -20,6 +20,10 @@ void Application::init(GLFWwindow *window)
         sizeof(glm::mat4)
     );
 
+    appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &appContext.camera.position, sizeof(glm::vec4));
+
+    appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view, sizeof(glm::mat4));
+
 }
 
 void Application::display()
@@ -78,11 +82,11 @@ void Application::display()
     {
         // Update Uniforms
         float currentTime = (float)glfwGetTime();
-        appContext.camera.updateOrbit(1.f);
+        // appContext.camera.updateOrbit(1.f);
 
         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
-        appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view, sizeof(glm::mat4));
-        appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &appContext.camera.position, sizeof(glm::vec4));
+        // appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view, sizeof(glm::mat4));
+        // appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &appContext.camera.position, sizeof(glm::vec4));
 
         RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
         // Select which render pipeline to use with its bindGroup
