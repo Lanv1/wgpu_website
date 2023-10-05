@@ -31,9 +31,9 @@ GpuProcess createPipelineRenderSdf(Device& device, Queue& queue)
 
    {
     BufferDescriptor bufferDesc;
-    bufferDesc.label = "Cam pos";
+    bufferDesc.label = "Sdf transformation";
     bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
-    bufferDesc.size = sizeof(glm::vec4);
+    bufferDesc.size = sizeof(glm::mat4);
     bufferDesc.mappedAtCreation = false;
     gpuProcess.uniformBuffers.push_back(device.createBuffer(bufferDesc));
    }
@@ -55,7 +55,7 @@ GpuProcess createPipelineRenderSdf(Device& device, Queue& queue)
 
     bindingLayout[1] = Default;
     bindingLayout[1].binding = 1;
-    bindingLayout[1].visibility = ShaderStage::Vertex;
+    bindingLayout[1].visibility = ShaderStage::Vertex | ShaderStage::Fragment;
     bindingLayout[1].buffer.type = BufferBindingType::Uniform;
     bindingLayout[1].buffer.minBindingSize = 2*sizeof(glm::mat4);
 
@@ -63,7 +63,7 @@ GpuProcess createPipelineRenderSdf(Device& device, Queue& queue)
     bindingLayout[2].binding = 2;
     bindingLayout[2].visibility = ShaderStage::Fragment;
     bindingLayout[2].buffer.type = BufferBindingType::Uniform;
-    bindingLayout[2].buffer.minBindingSize = sizeof(glm::vec4);
+    bindingLayout[2].buffer.minBindingSize = sizeof(glm::mat4);
 
     gpuProcess.bindGroupLayoutDesc.entryCount = bufferCount;
     gpuProcess.bindGroupLayoutDesc.entries = bindingLayout;
@@ -166,7 +166,8 @@ GpuProcess createPipelineRenderSdf(Device& device, Queue& queue)
     binding[2].binding = 2;
     binding[2].buffer = gpuProcess.uniformBuffers[2];
     binding[2].offset = 0;
-    binding[2].size = sizeof(glm::vec4);
+    binding[2].size = sizeof(glm::mat4);
+
 
     BindGroupDescriptor bindGroupDesc{};
     bindGroupDesc.layout = bindGroupLayout;

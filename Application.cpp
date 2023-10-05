@@ -5,13 +5,14 @@ using namespace wgpu;
 void Application::init(GLFWwindow *window)
 {
     appContext = Context(window);
+    modelTransform = glm::mat4(1.0f);
 
     /*
     * Add different GPU processes
     */
     renderSdfProcess = createPipelineRenderSdf(appContext.device, appContext.queue);
 
-    // Set the projection matrix uniform buffer only once because we will not update it.
+    // Set the projection, view matrices uniform buffers.
     appContext.queue.writeBuffer
     (
         renderSdfProcess.uniformBuffers[1],
@@ -20,9 +21,16 @@ void Application::init(GLFWwindow *window)
         sizeof(glm::mat4)
     );
 
-    appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &appContext.camera.position, sizeof(glm::vec4));
+    appContext.queue.writeBuffer
+    (
+        renderSdfProcess.uniformBuffers[1],
+        0,
+        &appContext.camera.view,
+        sizeof(glm::mat4)
+    );
 
-    appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view, sizeof(glm::mat4));
+    appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
+
 
 }
 
@@ -82,11 +90,10 @@ void Application::display()
     {
         // Update Uniforms
         float currentTime = (float)glfwGetTime();
-        // appContext.camera.updateOrbit(1.f);
+        modelTransform = glm::rotate(modelTransform, glm::radians(0.1f), glm::vec3(0.f, 1.f, 0.f));
 
         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
-        // appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view, sizeof(glm::mat4));
-        // appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &appContext.camera.position, sizeof(glm::vec4));
+        appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
 
         RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
         // Select which render pipeline to use with its bindGroup

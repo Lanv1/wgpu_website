@@ -54,7 +54,7 @@ Camera::Camera
 void Camera::updateOrbit(const float speed)
 {
     const glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(speed / 10.f), glm::vec3(0.f, 1.f, 0.f));
-    position = rotation * glm::vec4(position, 0.f);
+    position = rotation * glm::vec4(position, 1.f);
     view = glm::lookAt(position, {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f});
 }
 

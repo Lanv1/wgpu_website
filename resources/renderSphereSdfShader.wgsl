@@ -10,7 +10,7 @@ struct RayCast {
 
 @group(0) @binding(0) var<uniform> uTime: f32;
 @group(0) @binding(1) var<uniform> uCam: CamSettings;
-@group(0) @binding(2) var<uniform> uEye: vec4f;
+@group(0) @binding(2) var<uniform> uModel: mat4x4<f32>;
 
 struct Vs_output{
     @builtin(position) position: vec4f,
@@ -69,8 +69,20 @@ fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> Vs_output {
     return vs_output;
 }
 
+fn smin( a : f32, b : f32, k : f32 ) -> f32 {
+    let h = f32(max( k-abs(a-b), 0.0 )/k);
+    return min( a, b ) - h*h*k*(1.0/4.0);
+}
+
 fn sphere_dist(point : vec3f, origin : vec3f, radius : f32) -> f32 {
     return length(point - origin) - radius;
+}
+
+fn asym_dist(point : vec3f) -> f32 {
+    let d_sphere_base = sphere_dist(point, vec3f(0, 0, 0), 0.5);
+    let d_sphere_top = sphere_dist(point, vec3f(0.4, 0.4, 0), 0.3);
+
+    return smin(d_sphere_base, d_sphere_top, 0.1f);
 }
 
 fn raymarch(raycast : RayCast) -> vec3f
@@ -86,12 +98,13 @@ fn raymarch(raycast : RayCast) -> vec3f
 
     while(i < max_iter)
     {
-        dist = sphere_dist(point, vec3f(0., 0., 0.), 0.5f);
+        dist = asym_dist(point);
 
         if(dist < epsilon)
         {
             // HIT
-            return vec3f(f32(i) / f32(max_iter), 0., 0.);
+            //return vec3f(f32(i) / f32(max_iter), 0., 0.);
+            return point;
         }
 
         else if(dist > max_dist)
@@ -111,14 +124,14 @@ fn raymarch(raycast : RayCast) -> vec3f
 @fragment
 fn fs_main(fs_input : Vs_output) -> @location(0) vec4f {
 
-    let cam_pos = vec3f(uEye.xy, -uEye.z);
-
+    //let cam_pos = vec3f(uCam.view[3].xy, -uCam.view[3].z);
+    let cam_pos = uCam.view[3].xyz;
     var ray_cast = RayCast(
-        cam_pos,
-        normalize(unclamp_vec(vec3f(fs_input.color.xy, 1.0f)) - cam_pos)
+        (uModel * vec4f(cam_pos, 1.0f)).xyz,
+        (uModel * vec4f(normalize(unclamp_vec(vec3f(fs_input.color.xy, 1.0f)) - cam_pos), 1.0f)).xyz
     );
 
-    let hit = raymarch(ray_cast);
-
-    return vec4f(hit, 1.f);
+    let hit = vec4f(raymarch(ray_cast), 1.0f);
+    
+    return hit;
 }
