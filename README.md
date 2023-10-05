@@ -13,4 +13,4 @@ Go to **http://localhost:8000/App.html**
 
 
 ## Current state
-![wgpuGraphics](https://github.com/Lanv1/wgpu_website/assets/39962623/9df50076-41f4-4a69-9491-e4eadf3fc1bc)
+![wgpuGraphics_1](https://github.com/Lanv1/wgpu_website/assets/39962623/972354d8-74fe-4ff2-ab33-15fd75c3eabd)
