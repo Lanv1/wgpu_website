@@ -60,18 +60,19 @@ void Camera::updateOrbit(const float speed)
 
 Context::Context(GLFWwindow *window)
 {
-	int32_t window_width = 1920;
-    int32_t window_height = 1080;
+	int32_t window_width = 0;
+    int32_t window_height = 0;
+
+    glfwGetFramebufferSize(window,  &window_width, &window_height);
+    std::cout<<"widow dimensions "<<window_width<<", "<<window_height<<std::endl;
 
 	// glfwGetWindowSize(window, &window_width, &window_height);
 	instance = createInstance(InstanceDescriptor{});
 	if (!instance) {
 		std::cerr << "Could not initialize WebGPU!" << std::endl;
 	}
-    
-    std::cout<<"width height "<<window_width<< ", "<<window_height<<std::endl;
 
-    camera = Camera((float)window_width, (float)window_height, glm::vec3(0.f, 0.f, 3.f));
+    camera = Camera((float)window_width, (float)window_height, glm::vec3(0.f, 0.f, 8.f));
 
 	surface = glfwGetWGPUSurface(instance, window);
     

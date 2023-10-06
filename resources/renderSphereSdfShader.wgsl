@@ -57,7 +57,7 @@ fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> Vs_output {
         -sin(uTime),  0.f, cos(uTime)
     );
 
-    let v_pos = 2*vec3f(positions[in_vertex_index], 0.f);
+    let v_pos = 8*vec3f(positions[in_vertex_index], 0.f);
 
     let transformed_vertex = uCam.proj * uCam.view * vec4f(v_pos, 1.f);
     //let transformed_vertex = vec4f(v_pos, 1.f);

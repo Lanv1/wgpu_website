@@ -2,13 +2,63 @@
 
 using namespace wgpu;
 
+
+void windowMouseMove(GLFWwindow* m_window, double xpos, double ypos) 
+{
+	Application* appPtr = (Application*)(glfwGetWindowUserPointer(m_window));
+	if (appPtr != nullptr)
+    {
+        appPtr->mouseMove(xpos, ypos);
+    } 
+}
+
+void windowMouseBtn(GLFWwindow* w, int button, int action, int mods)
+{
+    Application* appPtr = (Application*) glfwGetWindowUserPointer(w);
+    if(appPtr != nullptr)
+    {
+        if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+        {
+            if(!appPtr->clickState.pressed)
+            {
+                appPtr->clickState.pressed = true;
+                double x,y;
+                glfwGetCursorPos(w, &x, &y);
+                glm::vec2 pos((float)x, (float)y);
+                appPtr->clickState.last = pos;
+            }
+        }
+        else if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
+        {
+            appPtr->clickState.pressed = false;
+        }
+    }
+}
+
+void Application::updateModel(const glm::vec2 d)
+{
+    const float clamped_y = glm::clamp(d.y, (float) -M_PI / 2 + 1e-5f, (float) M_PI / 2 - 1e-5f);
+    
+    modelTransform = glm::rotate(modelTransform, clamped_y / 100.f, glm::vec3(1.0f, 0.f, 0.f));
+    modelTransform = glm::rotate(modelTransform, d.x / 100.f, glm::vec3(0.f, 1.0f, 0.f));
+}
+
 void Application::init(GLFWwindow *window)
 {
     appContext = Context(window);
     modelTransform = glm::mat4(1.0f);
 
     /*
-    * Add different GPU processes
+    *   Set interaction callbacks
+    */
+    glfwSetWindowUserPointer(window, this);
+
+    glfwSetCursorPosCallback(window, windowMouseMove);
+    // glfwSetScrollCallback(window, onWindowScroll);
+    glfwSetMouseButtonCallback(window, windowMouseBtn);
+
+    /*
+    *   Add different GPU processes
     */
     renderSdfProcess = createPipelineRenderSdf(appContext.device, appContext.queue);
 
@@ -36,6 +86,7 @@ void Application::init(GLFWwindow *window)
 
 void Application::display()
 {
+    glfwPollEvents();
 
     TextureView nextTexture = appContext.swapChain.getCurrentTextureView();
     if (!nextTexture) {
@@ -90,7 +141,7 @@ void Application::display()
     {
         // Update Uniforms
         float currentTime = (float)glfwGetTime();
-        modelTransform = glm::rotate(modelTransform, glm::radians(0.1f), glm::vec3(0.f, 1.f, 0.f));
+        // modelTransform = glm::rotate(modelTransform, glm::radians(0.1f), glm::vec3(0.f, 1.f, 0.f));
 
         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
@@ -117,4 +168,27 @@ void Application::release()
 {
     appContext.release();
     renderSdfProcess.release();
+}
+
+/*
+*   INTERACTION CALLBACKS IMPLEMENTATION
+*/
+
+void Application::mouseMove(double xpos, double ypos)
+{
+    if(clickState.pressed)
+    {
+        const glm::vec2 pos((float) xpos, (float) ypos);
+        clickState.dxy = pos - clickState.last;
+        clickState.last = pos;
+        updateModel(clickState.dxy);
+    }
+}
+
+void Application::keyPress(int32_t key, int32_t action)
+{
+    if (key == GLFW_KEY_E && action == GLFW_PRESS)
+    {
+        std::cout<<"E PRESSED"<<std::endl;
+    }
 }
