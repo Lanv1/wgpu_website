@@ -3,6 +3,9 @@
 using namespace wgpu;
 
 
+/*
+*   Actual callbacks used for interactions (must request windowUserPointer)
+*/
 void windowMouseMove(GLFWwindow* m_window, double xpos, double ypos) 
 {
 	Application* appPtr = (Application*)(glfwGetWindowUserPointer(m_window));
@@ -17,29 +20,18 @@ void windowMouseBtn(GLFWwindow* w, int button, int action, int mods)
     Application* appPtr = (Application*) glfwGetWindowUserPointer(w);
     if(appPtr != nullptr)
     {
-        if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-        {
-            if(!appPtr->clickState.pressed)
-            {
-                appPtr->clickState.pressed = true;
-                double x,y;
-                glfwGetCursorPos(w, &x, &y);
-                glm::vec2 pos((float)x, (float)y);
-                appPtr->clickState.last = pos;
-            }
-        }
-        else if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
-        {
-            appPtr->clickState.pressed = false;
-        }
+        double x, y;
+        glfwGetCursorPos(w, &x, &y);
+        appPtr->mouseButton(button, action, x, y);
     }
 }
 
+
 void Application::updateModel(const glm::vec2 d)
 {
-    const float clamped_y = glm::clamp(d.y, (float) -M_PI / 2 + 1e-5f, (float) M_PI / 2 - 1e-5f);
+    // const float clamped_y = glm::clamp(d.y, (float) -M_PI / 2 + 1e-5f, (float) M_PI / 2 - 1e-5f);
     
-    modelTransform = glm::rotate(modelTransform, clamped_y / 100.f, glm::vec3(1.0f, 0.f, 0.f));
+    modelTransform = glm::rotate(modelTransform, d.y / 100.f, glm::vec3(1.0f, 0.f, 0.f));
     modelTransform = glm::rotate(modelTransform, d.x / 100.f, glm::vec3(0.f, 1.0f, 0.f));
 }
 
@@ -182,6 +174,23 @@ void Application::mouseMove(double xpos, double ypos)
         clickState.dxy = pos - clickState.last;
         clickState.last = pos;
         updateModel(clickState.dxy);
+    }
+}
+
+void Application::mouseButton(int32_t button, int32_t action, double xpos, double ypos)
+{
+    if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        if(!clickState.pressed)
+        {
+            clickState.pressed = true;
+            glm::vec2 pos((float)xpos, (float)ypos);
+            clickState.last = pos;
+        }
+    }
+    else if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
+    {
+        clickState.pressed = false;
     }
 }
 

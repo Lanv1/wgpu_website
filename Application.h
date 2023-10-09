@@ -31,6 +31,7 @@ public:
     void release();
     
     void mouseMove(double xpos, double ypos);
+    void mouseButton(int32_t button, int32_t action, double xpos, double ypos);
     void keyPress(int32_t key, int32_t action);
     
     ClickState clickState;
