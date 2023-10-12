@@ -3,9 +3,15 @@ struct CamSettings {
     proj: mat4x4<f32>,
 }
 
-struct RayCast {
+struct RayData {
     origin: vec3f,
     dir: vec3f
+}
+
+struct FragData {
+    position: vec3f,
+    normal: vec3f,
+    isHit: bool
 }
 
 @group(0) @binding(0) var<uniform> uTime: f32;
@@ -74,6 +80,11 @@ fn smin( a : f32, b : f32, k : f32 ) -> f32 {
     return min( a, b ) - h*h*k*(1.0/4.0);
 }
 
+fn ssubstr( a : f32, b : f32, k : f32 )-> f32 {
+    let h = f32(max( k-abs(a-b), 0.0 )/k);
+    return max( a, -b ) - h*h*k*(1.0/4.0);
+}
+
 fn sphere_dist(point : vec3f, origin : vec3f, radius : f32) -> f32 {
     return length(point - origin) - radius;
 }
@@ -82,19 +93,40 @@ fn asym_dist(point : vec3f) -> f32 {
     let d_sphere_base = sphere_dist(point, vec3f(0, 0, 0), 0.5);
     let d_sphere_top = sphere_dist(point, vec3f(0.4, 0.4, 0), 0.3);
 
-    return smin(d_sphere_base, d_sphere_top, 0.1f);
+    //return smin(d_sphere_base, d_sphere_top, 0.1f);
+    return ssubstr(d_sphere_base, d_sphere_top, 0.05f);
 }
 
-fn raymarch(raycast : RayCast) -> vec3f
+fn computeNormal(point : vec3f) -> vec3f {
+    let eps = 0.001f;
+    let h = vec2f(eps, 0);
+
+    let normal =  normalize(
+        vec3f(
+            asym_dist(point + h.xyy) - asym_dist(point - h.xyy), 
+            asym_dist(point + h.yxy) - asym_dist(point - h.yxy), 
+            asym_dist(point + h.yyx) - asym_dist(point - h.yyx)
+        )
+    );
+    return normal;
+}
+
+fn raymarch(ray_data : RayData) -> FragData
 {
-    const max_iter = u32(100);
-    const max_dist = f32(100.f);
-    const epsilon = f32(0.0001f);
+    const max_iter = u32(200);
+    const max_dist = f32(10.f);
+    const epsilon = f32(0.00001f);
     
     var i = u32(0);
-    var point = raycast.origin + raycast.dir;
+    var point = ray_data.origin + ray_data.dir;
     var dist = f32(0.f);
     var total_dist = f32(0.f);
+
+    var fragData = FragData(
+        vec3f(0.f, 0.f, 0.f),
+        vec3f(0.f, 0.f, 0.f),
+        false
+    );
 
     while(i < max_iter)
     {
@@ -102,36 +134,45 @@ fn raymarch(raycast : RayCast) -> vec3f
 
         if(dist < epsilon)
         {
-            // HIT
-            //return vec3f(f32(i) / f32(max_iter), 0., 0.);
-            return point;
-        }
+            fragData.position = point;
+            fragData.isHit = true;
+            fragData.normal = computeNormal(point);
 
+            //Z buffer
+            //return vec3f(total_dist)/max_dist;
+
+            return fragData;
+        }
         else if(dist > max_dist)
         {
-            return vec3f(0., 0., 0.);
+            return fragData;
         }
 
         total_dist += dist;
 
-        point = raycast.origin + total_dist * raycast.dir;
+        point = ray_data.origin + total_dist * ray_data.dir;
         i++;
     }
 
-    return vec3f(0., 0., 0.);
+    return fragData;
 }
 
 @fragment
 fn fs_main(fs_input : Vs_output) -> @location(0) vec4f {
 
-    //let cam_pos = vec3f(uCam.view[3].xy, -uCam.view[3].z);
     let cam_pos = uCam.view[3].xyz;
-    var ray_cast = RayCast(
+    let ray_data = RayData(
         (uModel * vec4f(cam_pos, 1.0f)).xyz,
-        (uModel * vec4f(normalize(unclamp_vec(vec3f(fs_input.color.xy, 1.0f)) - cam_pos), 1.0f)).xyz
+        (uModel * vec4f(normalize(unclamp_vec(vec3f(fs_input.color.xy, 1.f))), 1.0f)).xyz
     );
 
-    let hit = vec4f(raymarch(ray_cast), 1.0f);
-    
-    return hit;
+    let fragData = raymarch(ray_data);
+    if(fragData.isHit)
+    {
+        return vec4f((fragData.normal*0.5f)+0.5f, 1.0f);
+    }
+    else
+    {
+        return vec4f(0.0f);
+    }
 }

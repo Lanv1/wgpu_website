@@ -21,7 +21,6 @@ struct Camera
     glm::mat4 view;
 
     glm::vec3 position;
-
     Camera();
 
     Camera

@@ -26,13 +26,55 @@ void windowMouseBtn(GLFWwindow* w, int button, int action, int mods)
     }
 }
 
+void windowMouseScroll(GLFWwindow* w, double xoffset, double yoffset)
+{
+    Application* appPtr = (Application*) glfwGetWindowUserPointer(w);
+    if(appPtr != nullptr)
+    {
+        appPtr->mouseScroll(yoffset);
+    }
+}
+
+void windowKeyPress(GLFWwindow* w, int key, int scancode, int action, int mods)
+{
+    Application* appPtr = (Application*) glfwGetWindowUserPointer(w);
+    if(appPtr != nullptr)
+    {
+        appPtr->keyPress(key, action);
+    }
+}
 
 void Application::updateModel(const glm::vec2 d)
 {
+
+    std::cout<<"MODEL:"<<std::endl;
+    for(int32_t i = 0; i < 4; i ++)
+    {
+        for(int32_t j = 0; j < 4; j ++)
+        {
+            std::cout<<modelTransform[i][j]<<" ";
+            
+        }
+
+        std::cout<<std::endl;
+    }
+    if(transformation == Transformation::ROTATION)
+    {
+        glm::vec3 tr = glm::vec3(modelTransform[3][0],modelTransform[3][1],modelTransform[3][2]);
+
+        modelTransform = glm::rotate(modelTransform, d.y / 100.f, glm::vec3(1.0f, 0.f, 0.f));
+        modelTransform = glm::rotate(modelTransform, d.x / 100.f, glm::vec3(0.f, 1.0f, 0.f));
+    }
+    else if(transformation == Transformation::TRANSLATION)
+    {
+        // std::cout<<"MODELPOS "<<modelTranslation[0]<<", "<<modelTranslation[1]<<", "<<modelTranslation[2]<<std::endl;
+        // modelTranslation = 0.1f*glm::vec3(-d.x/200.f, d.y/200.f, 0.f);
+        // modelTransform = glm::translate(modelTransform, modelTranslation);
+    }
     // const float clamped_y = glm::clamp(d.y, (float) -M_PI / 2 + 1e-5f, (float) M_PI / 2 - 1e-5f);
     
-    modelTransform = glm::rotate(modelTransform, d.y / 100.f, glm::vec3(1.0f, 0.f, 0.f));
-    modelTransform = glm::rotate(modelTransform, d.x / 100.f, glm::vec3(0.f, 1.0f, 0.f));
+    // modelTransform = glm::translate(modelTransform, -appContext.camera.position);
+    // modelTransform = glm::translate(modelTransform, appContext.camera.position);
 }
 
 void Application::init(GLFWwindow *window)
@@ -46,8 +88,9 @@ void Application::init(GLFWwindow *window)
     glfwSetWindowUserPointer(window, this);
 
     glfwSetCursorPosCallback(window, windowMouseMove);
-    // glfwSetScrollCallback(window, onWindowScroll);
+    glfwSetScrollCallback(window, windowMouseScroll);
     glfwSetMouseButtonCallback(window, windowMouseBtn);
+    glfwSetKeyCallback(window, windowKeyPress);
 
     /*
     *   Add different GPU processes
@@ -73,7 +116,7 @@ void Application::init(GLFWwindow *window)
 
     appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
 
-
+    // modelTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.f));
 }
 
 void Application::display()
@@ -133,10 +176,20 @@ void Application::display()
     {
         // Update Uniforms
         float currentTime = (float)glfwGetTime();
-        // modelTransform = glm::rotate(modelTransform, glm::radians(0.1f), glm::vec3(0.f, 1.f, 0.f));
+        // modelTransform = glm::translate(modelTransform, modelTranslation);
+
+        // modelTransform = glm::translate(modelTransform, -modelTranslation);
+        // modelTransform = glm::rotate(modelTransform, glm::radians(0.8f), glm::vec3(0.f, 1.f, 0.f));
+        // modelTransform = glm::translate(modelTransform, modelTranslation);
 
         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
+
+        if(camDirty)
+        {
+            appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view,sizeof(glm::mat4));
+            camDirty = false;
+        }
 
         RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
         // Select which render pipeline to use with its bindGroup
@@ -194,10 +247,46 @@ void Application::mouseButton(int32_t button, int32_t action, double xpos, doubl
     }
 }
 
+void Application::mouseScroll(double offset)
+{
+    const float zoomed = appContext.camera.position.z + (float) offset*0.2f;
+    appContext.camera.position.z = zoomed > 0.3f ? zoomed <= 10.f ? zoomed : appContext.camera.position.z : appContext.camera.position.z;
+    
+    if(zoomed == appContext.camera.position.z)
+    {
+        appContext.camera.view[3][2] = -appContext.camera.position.z;   //update view matrix (only modifying camera z translation (zoom))
+        camDirty = true;
+    }
+}
+
 void Application::keyPress(int32_t key, int32_t action)
 {
-    if (key == GLFW_KEY_E && action == GLFW_PRESS)
+    switch (key)
     {
-        std::cout<<"E PRESSED"<<std::endl;
+    case GLFW_KEY_E:
+    {
+        if (action == GLFW_PRESS)
+        {   
+            std::cout<<"E PRESSED"<<std::endl;
+        }
+        break;
+    }
+    case GLFW_KEY_LEFT_SHIFT:
+    {
+        if (action == GLFW_PRESS)
+        {   
+            std::cout<<"switch to translation"<<std::endl;
+            transformation = Transformation::TRANSLATION;
+        }
+        else if(action == GLFW_RELEASE)
+        {
+            transformation = Transformation::ROTATION;
+            std::cout<<"switch to rotation"<<std::endl;
+        }
+        break;
+    }
+
+    default:
+        break;
     }
 }

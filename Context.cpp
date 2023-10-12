@@ -72,7 +72,7 @@ Context::Context(GLFWwindow *window)
 		std::cerr << "Could not initialize WebGPU!" << std::endl;
 	}
 
-    camera = Camera((float)window_width, (float)window_height, glm::vec3(0.f, 0.f, 8.f));
+    camera = Camera((float)window_width, (float)window_height, glm::vec3(0.f, 0.f, 3.f));
 
 	surface = glfwGetWGPUSurface(instance, window);
     
