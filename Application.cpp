@@ -46,35 +46,21 @@ void windowKeyPress(GLFWwindow* w, int key, int scancode, int action, int mods)
 
 void Application::updateModel(const glm::vec2 d)
 {
-
-    std::cout<<"MODEL:"<<std::endl;
-    for(int32_t i = 0; i < 4; i ++)
-    {
-        for(int32_t j = 0; j < 4; j ++)
-        {
-            std::cout<<modelTransform[i][j]<<" ";
-            
-        }
-
-        std::cout<<std::endl;
-    }
     if(transformation == Transformation::ROTATION)
     {
-        glm::vec3 tr = glm::vec3(modelTransform[3][0],modelTransform[3][1],modelTransform[3][2]);
-
+        //Self rotate
+        modelTransform = glm::translate(modelTransform, -modelTranslation);
         modelTransform = glm::rotate(modelTransform, d.y / 100.f, glm::vec3(1.0f, 0.f, 0.f));
         modelTransform = glm::rotate(modelTransform, d.x / 100.f, glm::vec3(0.f, 1.0f, 0.f));
+        modelTransform = glm::translate(modelTransform, modelTranslation);
     }
     else if(transformation == Transformation::TRANSLATION)
     {
-        // std::cout<<"MODELPOS "<<modelTranslation[0]<<", "<<modelTranslation[1]<<", "<<modelTranslation[2]<<std::endl;
-        // modelTranslation = 0.1f*glm::vec3(-d.x/200.f, d.y/200.f, 0.f);
-        // modelTransform = glm::translate(modelTransform, modelTranslation);
+        const glm::vec3 translation = 0.1f*glm::vec3(-d.x/200.f, d.y/200.f, 0.f);
+        modelTranslation += translation;    //Have to keep track of total translation in roder to rotate on itself.
+        modelTransform = glm::translate(modelTransform, translation);
     }
-    // const float clamped_y = glm::clamp(d.y, (float) -M_PI / 2 + 1e-5f, (float) M_PI / 2 - 1e-5f);
     
-    // modelTransform = glm::translate(modelTransform, -appContext.camera.position);
-    // modelTransform = glm::translate(modelTransform, appContext.camera.position);
 }
 
 void Application::init(GLFWwindow *window)
@@ -116,7 +102,6 @@ void Application::init(GLFWwindow *window)
 
     appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
 
-    // modelTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.f));
 }
 
 void Application::display()
@@ -176,11 +161,6 @@ void Application::display()
     {
         // Update Uniforms
         float currentTime = (float)glfwGetTime();
-        // modelTransform = glm::translate(modelTransform, modelTranslation);
-
-        // modelTransform = glm::translate(modelTransform, -modelTranslation);
-        // modelTransform = glm::rotate(modelTransform, glm::radians(0.8f), glm::vec3(0.f, 1.f, 0.f));
-        // modelTransform = glm::translate(modelTransform, modelTranslation);
 
         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));

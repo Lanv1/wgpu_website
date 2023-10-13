@@ -25,9 +25,7 @@ private:
     Context appContext = {};
     GpuProcess renderSdfProcess;
 
-    glm::mat4 modelRotation;
     glm::vec3 modelTranslation = glm::vec3(0.f);
-
     glm::mat4 modelTransform = glm::mat4(1.0f);
 
     void updateModel(const glm::vec2 d);
