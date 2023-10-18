@@ -49,7 +49,7 @@ GpuProcess createPipelineRenderSdf(Device& device, Queue& queue)
     bindingLayout[0] = Default;
     //The binding index as used in the @binding attribute in the shader
     bindingLayout[0].binding = 0;
-    bindingLayout[0].visibility = ShaderStage::Vertex;
+    bindingLayout[0].visibility =  ShaderStage::Fragment;
     bindingLayout[0].buffer.type = BufferBindingType::Uniform;
     bindingLayout[0].buffer.minBindingSize = sizeof(float);
 

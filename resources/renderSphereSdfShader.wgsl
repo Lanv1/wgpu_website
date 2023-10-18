@@ -34,7 +34,6 @@ fn unclamp_vec(v : vec3f) -> vec3f {
 
 @vertex
 fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> Vs_output {
-    let scale = (0.5f*sin(uTime)) + 0.5f;
 
     const positions = array(
         vec2(-0.5, -0.5),
@@ -45,8 +44,6 @@ fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> Vs_output {
         vec2( -0.5,  0.5)
     );
 
-    let clamped_col = clamp(sin(uTime));
-    let clamped_col2 = clamp(cos(uTime));
 
     const colors = array(
         vec3( 0,  0., 0.),
@@ -55,12 +52,6 @@ fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> Vs_output {
         vec3( 1.0,  0., 0.),
         vec3( 1.0,   1.0, 0.),
         vec3( 0.,  1.0, 0.)
-    );
-
-    let rot_mat = mat3x3f(
-        cos(uTime),  0.f, sin(uTime),
-        0.f, 1.f, 0.f,
-        -sin(uTime),  0.f, cos(uTime)
     );
 
     let v_pos = 8*vec3f(positions[in_vertex_index], 0.f);
@@ -91,10 +82,12 @@ fn sphere_dist(point : vec3f, origin : vec3f, radius : f32) -> f32 {
 
 fn asym_dist(point : vec3f) -> f32 {
     let d_sphere_base = sphere_dist(point, vec3f(0, 0, 0), 0.5);
-    let d_sphere_top = sphere_dist(point, vec3f(0.4, 0.4, 0), 0.3);
+    let small_rad = 0.3f + (((sin(uTime)*0.5f) +0.5f)* 0.1f);
+    let translation = 0.5f*sin(0.1*uTime);
+    let d_sphere_top = sphere_dist(point, vec3f(translation, translation, 0), 0.2f);
 
     //return smin(d_sphere_base, d_sphere_top, 0.1f);
-    return ssubstr(d_sphere_base, d_sphere_top, 0.05f);
+    return min(ssubstr(d_sphere_base, d_sphere_top, 0.05f), d_sphere_top);
 }
 
 fn computeNormal(point : vec3f) -> vec3f {
