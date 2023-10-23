@@ -80,14 +80,29 @@ fn sphere_dist(point : vec3f, origin : vec3f, radius : f32) -> f32 {
     return length(point - origin) - radius;
 }
 
-fn asym_dist(point : vec3f) -> f32 {
+fn scene_dist(point : vec3f) -> f32 {
     let d_sphere_base = sphere_dist(point, vec3f(0, 0, 0), 0.5);
     let small_rad = 0.3f + (((sin(uTime)*0.5f) +0.5f)* 0.1f);
     let translation = 0.5f*sin(0.1*uTime);
     let d_sphere_top = sphere_dist(point, vec3f(translation, translation, 0), 0.2f);
 
+    const nb_small_sphere = 8;
+    const PI = 3.1415926535f;
+    var d_scene = d_sphere_base;
+
+    for(var i = 0; i < nb_small_sphere; i ++)
+    {
+        let offset = f32(i)*(2.0f*PI) / f32(nb_small_sphere);
+        let position = vec3f(cos(offset), sin(offset), 0);
+
+        let d_small_sphere = sphere_dist(point, f32(i)*translation*position, 0.2f);
+        d_scene = min(ssubstr(d_scene, d_small_sphere, 0.05f), d_small_sphere);
+        
+    }
+
     //return smin(d_sphere_base, d_sphere_top, 0.1f);
-    return min(ssubstr(d_sphere_base, d_sphere_top, 0.05f), d_sphere_top);
+    //return min(ssubstr(d_sphere_base, d_sphere_top, 0.05f), d_sphere_top);
+    return d_scene;
 }
 
 fn computeNormal(point : vec3f) -> vec3f {
@@ -96,9 +111,9 @@ fn computeNormal(point : vec3f) -> vec3f {
 
     let normal =  normalize(
         vec3f(
-            asym_dist(point + h.xyy) - asym_dist(point - h.xyy), 
-            asym_dist(point + h.yxy) - asym_dist(point - h.yxy), 
-            asym_dist(point + h.yyx) - asym_dist(point - h.yyx)
+            scene_dist(point + h.xyy) - scene_dist(point - h.xyy), 
+            scene_dist(point + h.yxy) - scene_dist(point - h.yxy), 
+            scene_dist(point + h.yyx) - scene_dist(point - h.yyx)
         )
     );
     return normal;
@@ -123,7 +138,7 @@ fn raymarch(ray_data : RayData) -> FragData
 
     while(i < max_iter)
     {
-        dist = asym_dist(point);
+        dist = scene_dist(point);
 
         if(dist < epsilon)
         {
