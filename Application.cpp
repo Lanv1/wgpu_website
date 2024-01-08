@@ -81,7 +81,12 @@ void Application::init(GLFWwindow *window)
     /*
     *   Add different GPU processes
     */
+    Mesh cameraMesh(RESOURCE_DIR "/cameraMesh.obj");
+    cameraMesh.dumpInfo();
+
     renderSdfProcess = createPipelineRenderSdf(appContext.device, appContext.queue);
+    //TODO
+    // renderMeshProcess = createPipelineRenderSdf(appContext.device, appContext.queue); 
 
     // Set the projection, view matrices uniform buffers.
     appContext.queue.writeBuffer

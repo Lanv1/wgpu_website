@@ -3,6 +3,7 @@
 #include "Context.h"
 #include "PipelineRenderTriangle.h"
 #include "PipelineRenderSdf.h"
+#include "PipelineRenderMesh.h"
 
 struct ClickState
 {
@@ -23,7 +24,9 @@ struct Application
 private:
 
     Context appContext = {};
+
     GpuProcess renderSdfProcess;
+    // GpuProcess renderMeshProcess;
 
     glm::vec3 modelTranslation = glm::vec3(0.f);
     glm::mat4 modelTransform = glm::mat4(1.0f);

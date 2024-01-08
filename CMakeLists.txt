@@ -26,6 +26,10 @@ add_executable(App
 	PipelineRenderTriangle.cpp
 	PipelineRenderSdf.h
 	PipelineRenderSdf.cpp
+	Mesh.hpp
+	Mesh.cpp
+	PipelineRenderMesh.h
+	PipelineRenderMesh.cpp
 	implementations.cpp
 )
 
