@@ -4,9 +4,10 @@ using namespace wgpu;
 
 GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
 {
+
     GpuProcess gpuProcess;
     gpuProcess.uniformBuffers.clear();
-    gpuProcess.uniformBuffers.reserve(2);
+    gpuProcess.uniformBuffers.reserve(3);
 
 	/*
     * Uniform buffers
@@ -29,12 +30,47 @@ GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
     gpuProcess.uniformBuffers.push_back(device.createBuffer(bufferDesc));
    }
 
+   {
+    BufferDescriptor bufferDesc;
+    bufferDesc.label = "model transformation";
+    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
+    bufferDesc.size = sizeof(glm::mat4);
+    bufferDesc.mappedAtCreation = false;
+    gpuProcess.uniformBuffers.push_back(device.createBuffer(bufferDesc));
+   }
+
+   /*
+   * Vertex buffer
+   */
+  {
+    BufferDescriptor bufferDesc;
+    bufferDesc.label = "vertex buffer";
+    bufferDesc.size = mesh.vertices.size() * sizeof(glm::vec3);
+    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Vertex;
+    bufferDesc.mappedAtCreation = false;
+    gpuProcess.vertexBuffer = device.createBuffer(bufferDesc);
+  }
+
+   /*
+   * Index buffer
+   */
+  {
+    BufferDescriptor bufferDesc;
+    bufferDesc.label = "index buffer";
+    bufferDesc.size = mesh.indices.size() * sizeof(uint32_t);
+    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Index;
+    bufferDesc.mappedAtCreation = false;
+    gpuProcess.indexBuffer = device.createBuffer(bufferDesc);
+  }
+
     /*
     * Pipeline layout for ressources (uniforms bindings)
     */
 
+    const int32_t bufferCount = 3;
+
     //binding layout (don't forget to = Default)
-    BindGroupLayoutEntry bindingLayout[2] = {};
+    BindGroupLayoutEntry bindingLayout[bufferCount] = {};
     bindingLayout[0] = Default;
     //The binding index as used in the @binding attribute in the shader
     bindingLayout[0].binding = 0;
@@ -48,7 +84,13 @@ GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
     bindingLayout[1].buffer.type = BufferBindingType::Uniform;
     bindingLayout[1].buffer.minBindingSize = 2*sizeof(glm::mat4);
 
-    gpuProcess.bindGroupLayoutDesc.entryCount = 2;
+    bindingLayout[2] = Default;
+    bindingLayout[2].binding = 2;
+    bindingLayout[2].visibility = ShaderStage::Vertex;
+    bindingLayout[2].buffer.type = BufferBindingType::Uniform;
+    bindingLayout[2].buffer.minBindingSize = sizeof(glm::mat4);
+
+    gpuProcess.bindGroupLayoutDesc.entryCount = bufferCount;
     gpuProcess.bindGroupLayoutDesc.entries = bindingLayout;
     BindGroupLayout bindGroupLayout = device.createBindGroupLayout(gpuProcess.bindGroupLayoutDesc);
 
@@ -64,8 +106,21 @@ GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
 
     RenderPipelineDescriptor pipelineDesc = {};
 
-    pipelineDesc.vertex.bufferCount = 0;
-    pipelineDesc.vertex.buffers = nullptr;
+    VertexBufferLayout vertexBufferLayout;
+    VertexAttribute vertexAttrib;
+
+    vertexAttrib.shaderLocation = 0;
+    vertexAttrib.format = VertexFormat::Float32x3;
+    // Index of the first element
+    vertexAttrib.offset = 0;
+
+    vertexBufferLayout.attributeCount = 1;
+    vertexBufferLayout.attributes = &vertexAttrib;
+    vertexBufferLayout.arrayStride = 3 * sizeof(float);
+    vertexBufferLayout.stepMode = VertexStepMode::Vertex;
+
+    pipelineDesc.vertex.bufferCount = 1;
+    pipelineDesc.vertex.buffers = &vertexBufferLayout;
 
     pipelineDesc.vertex.module = shaderModule;
     pipelineDesc.vertex.entryPoint = "vs_main";
@@ -75,7 +130,7 @@ GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
     pipelineDesc.primitive.topology = PrimitiveTopology::TriangleList;
     pipelineDesc.primitive.stripIndexFormat = IndexFormat::Undefined;
     pipelineDesc.primitive.frontFace = FrontFace::CCW;
-    pipelineDesc.primitive.cullMode = CullMode::None;
+    pipelineDesc.primitive.cullMode = CullMode::Back;
 
     //Setup depth state
     DepthStencilState depthStencilState = Default;
@@ -133,7 +188,7 @@ GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
     */
 
     // Create a binding (copy of the pipeline layout)
-    BindGroupEntry binding[2] = {};
+    BindGroupEntry binding[bufferCount] = {};
     binding[0].binding = 0;
     binding[0].buffer = gpuProcess.uniformBuffers[0];
     // We can specify an offset within the buffer, so that a single buffer can hold
@@ -145,6 +200,11 @@ GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
     binding[1].buffer = gpuProcess.uniformBuffers[1];
     binding[1].offset = 0;
     binding[1].size = 2*sizeof(glm::mat4);
+
+    binding[2].binding = 2;
+    binding[2].buffer = gpuProcess.uniformBuffers[2];
+    binding[2].offset = 0;
+    binding[2].size = sizeof(glm::mat4);
 
     BindGroupDescriptor bindGroupDesc{};
     bindGroupDesc.layout = bindGroupLayout;

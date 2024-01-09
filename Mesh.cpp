@@ -53,7 +53,8 @@ Mesh::Mesh(const std::filesystem::path& filePath)
             Face face;
             for (int i = 0; i < 3; ++i) {
 
-               iss >> face.vertexIndex[i];
+                iss >> face.vertexIndex[i];
+                face.vertexIndex[i] --;
                 if (iss.peek() == '/') {
                     iss.ignore(); // Skip '/'
 
@@ -67,6 +68,7 @@ Mesh::Mesh(const std::filesystem::path& filePath)
                     if (iss.peek() == '/') {
                         iss.ignore(); // Skip '/'
                         iss >> face.normalIndex[i];
+                        face.normalIndex[i] --;
                     }
                 }
             }
@@ -81,9 +83,18 @@ Mesh::Mesh(const std::filesystem::path& filePath)
     }
 
     file.close();
+
+    for(const Face face : faces) {
+        indices.push_back(face.vertexIndex[0]);
+        indices.push_back(face.vertexIndex[1]);
+        indices.push_back(face.vertexIndex[2]);
+    }
+
+
 }
 
 void Mesh::dumpInfo()
 {
     std::cout<<"Mesh has "<<vertices.size()<<" vertices,"<<faces.size()<<" faces and "<< normals.size()<<" normals."<<std::endl;
+
 }

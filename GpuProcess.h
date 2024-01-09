@@ -17,6 +17,8 @@ struct GpuProcess
 {
     wgpu::RenderPipeline pipeline = nullptr;
     std::vector<wgpu::Buffer> uniformBuffers;
+    wgpu::Buffer vertexBuffer = nullptr;
+    wgpu::Buffer indexBuffer = nullptr;
     wgpu::BindGroup bindGroup = nullptr;
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc = {};
 

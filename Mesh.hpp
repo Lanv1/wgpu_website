@@ -25,6 +25,8 @@ struct Mesh
     std::vector<glm::vec3> normals;
     std::vector<Face> faces;
 
+    std::vector<uint32_t> indices;
+
     Mesh();
     Mesh
     (

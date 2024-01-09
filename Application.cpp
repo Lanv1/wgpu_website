@@ -81,17 +81,19 @@ void Application::init(GLFWwindow *window)
     /*
     *   Add different GPU processes
     */
-    Mesh cameraMesh(RESOURCE_DIR "/cameraMesh.obj");
+    Mesh cameraMesh(RESOURCE_DIR "/cameraToon.obj");
+    currentMesh = cameraMesh;
     cameraMesh.dumpInfo();
 
-    renderSdfProcess = createPipelineRenderSdf(appContext.device, appContext.queue);
+    // renderSdfProcess = createPipelineRenderSdf(appContext.device, appContext.queue);
     //TODO
-    // renderMeshProcess = createPipelineRenderSdf(appContext.device, appContext.queue); 
+    renderMeshProcess = createPipelineRenderMesh(appContext.device, appContext.queue, currentMesh); 
+    std::cout<<"zzz"<<std::endl;
 
     // Set the projection, view matrices uniform buffers.
     appContext.queue.writeBuffer
     (
-        renderSdfProcess.uniformBuffers[1],
+        renderMeshProcess.uniformBuffers[1],
         sizeof(glm::mat4),
         &appContext.camera.projection,
         sizeof(glm::mat4)
@@ -99,13 +101,31 @@ void Application::init(GLFWwindow *window)
 
     appContext.queue.writeBuffer
     (
-        renderSdfProcess.uniformBuffers[1],
+        renderMeshProcess.uniformBuffers[1],
         0,
         &appContext.camera.view,
         sizeof(glm::mat4)
     );
 
-    appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
+    appContext.queue.writeBuffer
+    (
+        renderMeshProcess.vertexBuffer,
+        0,
+        currentMesh.vertices.data(),
+        currentMesh.vertices.size() * sizeof(glm::vec3)
+    );
+
+    appContext.queue.writeBuffer
+    (
+        renderMeshProcess.indexBuffer,
+        0,
+        currentMesh.indices.data(),
+        currentMesh.indices.size() * sizeof(uint32_t)
+    );
+
+    
+
+    appContext.queue.writeBuffer(renderMeshProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
 
 }
 
@@ -163,26 +183,64 @@ void Application::display()
     /*
     * Can have multiple render passes here
     */
+    // {
+    //     // Update Uniforms
+    //     float currentTime = (float)glfwGetTime();
+
+    //     appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
+    //     appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
+
+    //     if(camDirty)
+    //     {
+    //         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view,sizeof(glm::mat4));
+    //         camDirty = false;
+    //     }
+
+    //     RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
+    //     // Select which render pipeline to use with its bindGroup
+    //     renderPass.setPipeline(renderSdfProcess.pipeline);
+    //     renderPass.setBindGroup(0, renderSdfProcess.bindGroup, 0, nullptr);
+
+    //     // Draw 1 instance of a 3-vertices shape
+    //     renderPass.draw(6, 1, 0, 0);
+    //     renderPass.end();
+        
+    //     nextTexture.release();
+
+    //     CommandBufferDescriptor cmdBufferDescriptor{};
+    //     cmdBufferDescriptor.label = "Command buffer";
+    //     CommandBuffer command = encoder.finish(cmdBufferDescriptor);
+    //     appContext.queue.submit(command);
+    // }
+
     {
         // Update Uniforms
         float currentTime = (float)glfwGetTime();
 
-        appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
-        appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
+        appContext.queue.writeBuffer(renderMeshProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
+        appContext.queue.writeBuffer(renderMeshProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
 
         if(camDirty)
         {
-            appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view,sizeof(glm::mat4));
+            appContext.queue.writeBuffer(renderMeshProcess.uniformBuffers[1], 0, &appContext.camera.view,sizeof(glm::mat4));
             camDirty = false;
         }
 
         RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
         // Select which render pipeline to use with its bindGroup
-        renderPass.setPipeline(renderSdfProcess.pipeline);
-        renderPass.setBindGroup(0, renderSdfProcess.bindGroup, 0, nullptr);
+        renderPass.setPipeline(renderMeshProcess.pipeline);
+        renderPass.setBindGroup(0, renderMeshProcess.bindGroup, 0, nullptr);
 
-        // Draw 1 instance of a 3-vertices shape
-        renderPass.draw(6, 1, 0, 0);
+        // Set both vertex and index buffers
+        renderPass.setVertexBuffer(0, renderMeshProcess.vertexBuffer, 0, currentMesh.vertices.size() * sizeof(glm::vec3));
+        // The second argument must correspond to the choice of uint16_t or uint32_t
+        // we've done when creating the index buffer.
+        renderPass.setIndexBuffer(renderMeshProcess.indexBuffer, IndexFormat::Uint32, 0, currentMesh.indices.size() * sizeof(uint32_t));
+
+        // Replace `draw()` with `drawIndexed()` and `vertexCount` with `indexCount`
+        // The extra argument is an offset within the index buffer.
+        renderPass.drawIndexed(currentMesh.indices.size(), 1, 0, 0, 0);
+
         renderPass.end();
         
         nextTexture.release();
@@ -197,7 +255,8 @@ void Application::display()
 void Application::release()
 {
     appContext.release();
-    renderSdfProcess.release();
+    // renderSdfProcess.release();
+    renderMeshProcess.release();
 }
 
 /*

@@ -126,9 +126,9 @@ Context::Context(GLFWwindow *window)
     // We use at most 1 bind group for now
     requiredLimits.limits.maxBindGroups = 1;
     // We use at most 1 uniform buffer per stage
-    requiredLimits.limits.maxUniformBuffersPerShaderStage = 3;
+    requiredLimits.limits.maxUniformBuffersPerShaderStage = 4;
     // Uniform structs have a size of maximum 16 float (more than what we need)
-    requiredLimits.limits.maxUniformBufferBindingSize = 3 * 16 * sizeof(float);
+    requiredLimits.limits.maxUniformBufferBindingSize = 4 * 16 * sizeof(float);
 
 	requiredLimits.limits.minStorageBufferOffsetAlignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
 	requiredLimits.limits.minUniformBufferOffsetAlignment = supportedLimits.limits.minUniformBufferOffsetAlignment;
