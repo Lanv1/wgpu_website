@@ -90,11 +90,25 @@ Mesh::Mesh(const std::filesystem::path& filePath)
         indices.push_back(face.vertexIndex[2]);
     }
 
-
+    setInterleaved();
 }
 
 void Mesh::dumpInfo()
 {
     std::cout<<"Mesh has "<<vertices.size()<<" vertices,"<<faces.size()<<" faces and "<< normals.size()<<" normals."<<std::endl;
 
+}
+
+void Mesh::setInterleaved()
+{
+    interleaved = std::vector<glm::vec3>(0);
+
+    for(const Face face : faces)
+    {
+        for(int32_t i = 0; i < 3; i ++)
+        {
+            interleaved.push_back(vertices[face.vertexIndex[i]]);
+            interleaved.push_back(normals[face.normalIndex[i]]);
+        }
+    }
 }

@@ -26,7 +26,7 @@ struct Mesh
     std::vector<Face> faces;
 
     std::vector<uint32_t> indices;
-
+    std::vector<glm::vec3> interleaved;
     Mesh();
     Mesh
     (
@@ -39,6 +39,11 @@ struct Mesh
     * Store vertices and triangles from .obj file.
     */
     Mesh(const std::filesystem::path& filePath);
-
     void dumpInfo();
+
+    private:
+    /*
+    * Returns interleaved position/normals duplicated vertices
+    */
+    void setInterleaved();
 };

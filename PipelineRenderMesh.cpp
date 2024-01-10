@@ -5,10 +5,11 @@ using namespace wgpu;
 GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
 {
 
-    GpuProcess gpuProcess;
-    gpuProcess.uniformBuffers.clear();
-    gpuProcess.uniformBuffers.reserve(3);
-
+  GpuProcess gpuProcess;
+  gpuProcess.uniformBuffers.clear();
+  gpuProcess.uniformBuffers.reserve(3);
+  std::cout<<"interleaved size: "<<mesh.interleaved.size()<<std::endl;
+  // std::vector<glm::vec3> vertexData = mesh.getVerticesPacked();
 	/*
     * Uniform buffers
     */
@@ -45,7 +46,7 @@ GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
   {
     BufferDescriptor bufferDesc;
     bufferDesc.label = "vertex buffer";
-    bufferDesc.size = mesh.vertices.size() * sizeof(glm::vec3);
+    bufferDesc.size = mesh.interleaved.size() * sizeof(glm::vec3);
     bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Vertex;
     bufferDesc.mappedAtCreation = false;
     gpuProcess.vertexBuffer = device.createBuffer(bufferDesc);
@@ -107,16 +108,21 @@ GpuProcess createPipelineRenderMesh(Device& device, Queue& queue, Mesh& mesh)
     RenderPipelineDescriptor pipelineDesc = {};
 
     VertexBufferLayout vertexBufferLayout;
-    VertexAttribute vertexAttrib;
+    std::vector<VertexAttribute> vertexAttribs(2);
 
-    vertexAttrib.shaderLocation = 0;
-    vertexAttrib.format = VertexFormat::Float32x3;
+    vertexAttribs[0].shaderLocation = 0;
+    vertexAttribs[0].format = VertexFormat::Float32x3;
     // Index of the first element
-    vertexAttrib.offset = 0;
+    vertexAttribs[0].offset = 0;
 
-    vertexBufferLayout.attributeCount = 1;
-    vertexBufferLayout.attributes = &vertexAttrib;
-    vertexBufferLayout.arrayStride = 3 * sizeof(float);
+    vertexAttribs[1].shaderLocation = 1;
+    vertexAttribs[1].format = VertexFormat::Float32x3;
+    // Index of the first element
+    vertexAttribs[1].offset = 3 * sizeof(float);
+
+    vertexBufferLayout.attributeCount = 2;
+    vertexBufferLayout.attributes = vertexAttribs.data();
+    vertexBufferLayout.arrayStride = 6 * sizeof(float);
     vertexBufferLayout.stepMode = VertexStepMode::Vertex;
 
     pipelineDesc.vertex.bufferCount = 1;

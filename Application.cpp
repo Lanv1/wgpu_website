@@ -50,15 +50,17 @@ void Application::updateModel(const glm::vec2 d)
     {
         //Self rotate
         modelTransform = glm::translate(modelTransform, -modelTranslation);
-        modelTransform = glm::rotate(modelTransform, d.y / 100.f, glm::vec3(1.0f, 0.f, 0.f));
-        modelTransform = glm::rotate(modelTransform, d.x / 100.f, glm::vec3(0.f, 1.0f, 0.f));
+        modelTransform = glm::rotate(modelTransform, -d.y / 100.f, glm::vec3(1.0f, 0.f, 0.f));
+        modelTransform = glm::rotate(modelTransform, -d.x / 100.f, glm::vec3(0.f, 1.0f, 0.f));
         modelTransform = glm::translate(modelTransform, modelTranslation);
     }
     else if(transformation == Transformation::TRANSLATION)
     {
-        const glm::vec3 translation = 0.1f*glm::vec3(-d.x/200.f, d.y/200.f, 0.f);
-        modelTranslation += translation;    //Have to keep track of total translation in roder to rotate on itself.
-        modelTransform = glm::translate(modelTransform, translation);
+        const glm::vec3 translation = 0.1f*glm::vec3(-d.x/100.f, d.y/100.f, 0.f);
+        // modelTranslation += translation;    //Have to keep track of total translation in roder to rotate on itself.
+        // modelTransform = glm::translate(modelTransform, translation);
+        appContext.camera.view = glm::translate(appContext.camera.view, -translation);
+        camDirty = true;
     }
     
 }
@@ -84,6 +86,7 @@ void Application::init(GLFWwindow *window)
     Mesh cameraMesh(RESOURCE_DIR "/cameraToon.obj");
     currentMesh = cameraMesh;
     cameraMesh.dumpInfo();
+    // std::vector<glm::vec3> vertexData = currentMesh.getVerticesPacked();
 
     // renderSdfProcess = createPipelineRenderSdf(appContext.device, appContext.queue);
     //TODO
@@ -111,8 +114,8 @@ void Application::init(GLFWwindow *window)
     (
         renderMeshProcess.vertexBuffer,
         0,
-        currentMesh.vertices.data(),
-        currentMesh.vertices.size() * sizeof(glm::vec3)
+        currentMesh.interleaved.data(),
+        currentMesh.interleaved.size() * sizeof(glm::vec3)
     );
 
     appContext.queue.writeBuffer
@@ -183,35 +186,6 @@ void Application::display()
     /*
     * Can have multiple render passes here
     */
-    // {
-    //     // Update Uniforms
-    //     float currentTime = (float)glfwGetTime();
-
-    //     appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[0], 0, &currentTime, sizeof(float));
-    //     appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[2], 0, &modelTransform, sizeof(glm::mat4));
-
-    //     if(camDirty)
-    //     {
-    //         appContext.queue.writeBuffer(renderSdfProcess.uniformBuffers[1], 0, &appContext.camera.view,sizeof(glm::mat4));
-    //         camDirty = false;
-    //     }
-
-    //     RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
-    //     // Select which render pipeline to use with its bindGroup
-    //     renderPass.setPipeline(renderSdfProcess.pipeline);
-    //     renderPass.setBindGroup(0, renderSdfProcess.bindGroup, 0, nullptr);
-
-    //     // Draw 1 instance of a 3-vertices shape
-    //     renderPass.draw(6, 1, 0, 0);
-    //     renderPass.end();
-        
-    //     nextTexture.release();
-
-    //     CommandBufferDescriptor cmdBufferDescriptor{};
-    //     cmdBufferDescriptor.label = "Command buffer";
-    //     CommandBuffer command = encoder.finish(cmdBufferDescriptor);
-    //     appContext.queue.submit(command);
-    // }
 
     {
         // Update Uniforms
@@ -232,14 +206,15 @@ void Application::display()
         renderPass.setBindGroup(0, renderMeshProcess.bindGroup, 0, nullptr);
 
         // Set both vertex and index buffers
-        renderPass.setVertexBuffer(0, renderMeshProcess.vertexBuffer, 0, currentMesh.vertices.size() * sizeof(glm::vec3));
+        renderPass.setVertexBuffer(0, renderMeshProcess.vertexBuffer, 0, currentMesh.interleaved.size() * sizeof(glm::vec3));
         // The second argument must correspond to the choice of uint16_t or uint32_t
         // we've done when creating the index buffer.
-        renderPass.setIndexBuffer(renderMeshProcess.indexBuffer, IndexFormat::Uint32, 0, currentMesh.indices.size() * sizeof(uint32_t));
+        // renderPass.setIndexBuffer(renderMeshProcess.indexBuffer, IndexFormat::Uint32, 0, currentMesh.indices.size() * sizeof(uint32_t));
 
         // Replace `draw()` with `drawIndexed()` and `vertexCount` with `indexCount`
         // The extra argument is an offset within the index buffer.
-        renderPass.drawIndexed(currentMesh.indices.size(), 1, 0, 0, 0);
+        // renderPass.drawIndexed(currentMesh.indices.size(), 1, 0, 0, 0);
+        renderPass.draw(currentMesh.interleaved.size()/2, 1, 0, 0);
 
         renderPass.end();
         
