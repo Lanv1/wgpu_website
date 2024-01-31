@@ -20,7 +20,7 @@ struct VertexOutput {
 @vertex
 fn vs_main(in_vertex: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    let transformed_vertex = uCam.proj * uCam.view * transpose(uModel) * vec4f(in_vertex.position, 1.f);
+    let transformed_vertex = uCam.proj * uCam.view * vec4f(in_vertex.position, 1.f);
 
     out.position = transformed_vertex;
     out.normal = in_vertex.normal;

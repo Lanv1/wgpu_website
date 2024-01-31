@@ -24,7 +24,7 @@ GLFWwindow* init(int32_t width, int32_t height)
 
 int main()
 {
-    // std::cout<<"running this main"<<std::endl;
+    std::cout<<"running this main updated or no ???"<<std::endl;
     constexpr int32_t window_width = 1920;
     constexpr int32_t window_height = 1080;
 

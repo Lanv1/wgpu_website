@@ -48,18 +48,28 @@ void Application::updateModel(const glm::vec2 d)
 {
     if(transformation == Transformation::ROTATION)
     {
+        const glm::mat4 camMat = appContext.camera.view;
+        const glm::vec3 camTranslation(camMat[3][0], camMat[3][1], camMat[3][2]);
+        const glm::vec3 axis = glm::normalize(glm::vec3(d.y, d.x, 0.f));
+
         //Self rotate
-        modelTransform = glm::translate(modelTransform, -modelTranslation);
-        modelTransform = glm::rotate(modelTransform, -d.y / 100.f, glm::vec3(1.0f, 0.f, 0.f));
-        modelTransform = glm::rotate(modelTransform, -d.x / 100.f, glm::vec3(0.f, 1.0f, 0.f));
-        modelTransform = glm::translate(modelTransform, modelTranslation);
+        appContext.camera.view = glm::translate(glm::mat4(1.0f), camTranslation)
+            * glm::rotate(glm::mat4(1.0f), 0.01f*glm::length(d) ,axis)
+            * glm::translate(glm::mat4(1.0f), -camTranslation)
+            * camMat;
+        
+        camDirty = true;
+
     }
     else if(transformation == Transformation::TRANSLATION)
     {
-        const glm::vec3 translation = 0.1f*glm::vec3(-d.x/100.f, d.y/100.f, 0.f);
-        // modelTranslation += translation;    //Have to keep track of total translation in roder to rotate on itself.
-        // modelTransform = glm::translate(modelTransform, translation);
-        appContext.camera.view = glm::translate(appContext.camera.view, -translation);
+        //Translation in local camera frame
+        const glm::mat4 camMat = appContext.camera.view;
+        const glm::vec3 up(camMat[0][0], camMat[1][0], camMat[2][0]);
+        const glm::vec3 right(camMat[0][1], camMat[1][1], camMat[2][1]);
+
+        const glm::vec3 translation = 0.1f*((-d.y/100.f)*right + (d.x/100.f)*up);
+        appContext.camera.view = glm::translate(appContext.camera.view, translation);
         camDirty = true;
     }
     

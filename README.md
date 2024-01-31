@@ -8,8 +8,10 @@ emcmake cmake -B build
 cmake --build build
 python -m http.server -d build
 ```
-
 Go to **http://localhost:8000/App.html**
+
+
+**Dont forget to `shift+F5` to correctly refresh web page :)**
 
 ## Linux
 When launching chrome add flags to enable webgpu:
